@@ -1,6 +1,6 @@
 # YoctoCloud
 
-This script PHP will allow you to create your very own visualisation cloud 
+This PHP script will allow you to create your very own visualisation cloud 
 to control Yoctopuce sensors. Basically you will be able to interactively 
 build a user interface with graphs showing your Yoctopuce sensors data history.
 

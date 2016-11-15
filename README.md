@@ -4,6 +4,8 @@ This script PHP will allow you to create your very own visualisation cloud
 to control Yoctopuce sensors. Basically you will be able to interactively 
 build a user interface with graphs showing your Yoctopuce sensors data history.
 
+![Screenshot example](https://www.yoctopuce.com/pubarchive/2016-11/YoctoCloudScreenShot_1.png)
+
 ## Installation
 1. Copy all seven php files on your PHP server, preferably in a sub folder
 2. Create a data sub-folder, make sure the php server has write access to it

@@ -90,6 +90,7 @@ $shownotice       = false;
 $snow             = gmdate("Y-m-d\TH:i:s\z", $now);
 define("MAX_DATASRC_PER_GRAPH",       3);
 define("MAX_YAXIS_PER_GRAPH",         2);
+define("MAX_YBAND_PER_GRAPH",         3);
 define("MAX_VARIABLE_PER_DECO",       6);
 define("FIRST_READ_POINT_COUNT",   2000);
 define("REFRESH_READ_POINT_COUNT", 1000);
@@ -1089,6 +1090,8 @@ define( "XAXISSTYLE_OBJ",8192);
 define( "YAXISSTYLE_OBJ",16384);
 define( "XAXIS_OBJ"     ,32768);
 define( "TITLESTYLE_OBJ",16384);
+define( "YBAND_OBJ",     32768);
+define( "EXPORTBTN_OBJ", 65536);
 define( "NOTHING"       , 0);
 
 $defaultColor= Array('#FF0000','#0000FF','#000000');
@@ -1146,9 +1149,10 @@ $GRAPH_EDITABLE_VALUES =
   );
   $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "X axis Color",  "prefix"=>""        ,"name"=>"lineColor",    "type"=> TYPE_COLOR,  "defaultValue"=>"#404040"   ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>XAXIS_OBJ ,"hint"=>'X Axis lin2 color'); 
   $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "LabelsColor",   "prefix"=>"labStyle","name"=>"color",        "type"=> TYPE_COLOR,  "defaultValue"=>"#404040"   ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>XAXISSTYLE_OBJ | YAXISSTYLE_OBJ | TITLESTYLE_OBJ ,"hint"=>'Axis and title color'); 
-  $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "Navigator",     "prefix"=>"nav",   "name"=>"enabled",        "type"=> TYPE_BOOL,   "defaultValue"=>false       ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>NAVIGATOR_OBJ,"hint"=>'Show chart overview');
-  $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "ScrollBar",     "prefix"=>"scrlb", "name"=>"enabled",        "type"=> TYPE_BOOL,   "defaultValue"=>true        ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>SCROLLBAR_OBJ,"hint"=>'Show chart horizontal scroll bar');
-  $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "Range selector","prefix"=>"rgsel", "name"=>"enabled",        "type"=> TYPE_BOOL,   "defaultValue"=>true        ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>RANGESEL_OBJ,"hint"=>'Show chart Range selector');
+  $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "Navigator",     "prefix"=>"nav",     "name"=>"enabled",      "type"=> TYPE_BOOL,   "defaultValue"=>false       ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>NAVIGATOR_OBJ,"hint"=>'Show chart overview');
+  $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "ScrollBar",     "prefix"=>"scrlb",   "name"=>"enabled",      "type"=> TYPE_BOOL,   "defaultValue"=>true        ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>SCROLLBAR_OBJ,"hint"=>'Show chart horizontal scroll bar');
+  $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "Range selector","prefix"=>"rgsel",   "name"=>"enabled",      "type"=> TYPE_BOOL,   "defaultValue"=>true        ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>RANGESEL_OBJ,"hint"=>'Show chart Range selector');
+  $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "Export button" ,"prefix"=>"expbtn",  "name"=>"enabled",      "type"=> TYPE_BOOL,   "defaultValue"=>false       ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>EXPORTBTN_OBJ,"hint"=>'Show chart export menu');
   
   
   $GRAPH_EDITABLE_VALUES[] = Array("caption"=> "Data sets",         "editable"=>false, "columnBreak" => true,       "appliesTo"=>NOTHING); 
@@ -1176,7 +1180,15 @@ $GRAPH_EDITABLE_VALUES =
     
   }	  
 
-  
+  $GRAPH_EDITABLE_VALUES[] = Array("caption"=> "Horizontal bands",         "editable"=>false, "columnBreak" => true,       "appliesTo"=>NOTHING);
+ for ($i=0;$i<MAX_YBAND_PER_GRAPH;$i++)
+  { $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "Band  ".($i+1),"editable"=>false, "columnBreak" => false,   "appliesTo"=>NOTHING); 
+    $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "Color",     "prefix"=>"yBand",  "name"=>"color",       "type"=> TYPE_COLOR,    "defaultValue"=>NULL    ,"nullable"=>true,  "editable"=>true, "index"=>$i,"appliesTo"=>YBAND_OBJ,"hint"=>"Horizontal band $i color, applies to first Y axis only, leave blank to disable");                  
+    $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "Start",     "prefix"=>"yBand",  "name"=>"from",        "type"=> TYPE_FLOAT,       "defaultValue"=>0      ,"nullable"=>false,  "editable"=>true, "index"=>$i, "appliesTo"=>YBAND_OBJ,"hint"=>"Band $i lower edge");
+    $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "End",       "prefix"=>"yBand",  "name"=>"to",          "type"=> TYPE_FLOAT,       "defaultValue"=>0     ,"nullable"=>false,  "editable"=>true, "index"=>$i, "appliesTo"=>YBAND_OBJ,"hint"=>"Band $i upper edge");
+  }	  
+
+ 
   $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "Legend",          "editable"=>false,    "columnBreak" => true,  "appliesTo"=>NOTHING); 
   $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "Enabled",         "prefix"=>"legend",   "name"=>"enabled",        "type"=> TYPE_BOOL,   "defaultValue"=>false       ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>LEGEND_OBJ,"hint"=>'Show/hide legend.');
   $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "Hrz. Align",      "prefix"=>"legend",   "name"=>"align",          "type"=> TYPE_HALIGN, "defaultValue"=>"right"     ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>LEGEND_OBJ,"hint"=>'Legend left/right alignment.');
@@ -1650,6 +1662,8 @@ DIV.fileDetailsContents
 
 <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
 <script src="http://code.highcharts.com/stock/highstock.js"></script>
+<script src="http://code.highcharts.com/modules/exporting.js"></script>
+<script src="http://code.highcharts.com/modules/offline-exporting.js"></script>
 <script>
 var GRAPHELMT =0;
 var DECOELMT =1;
@@ -1959,7 +1973,9 @@ function newGraph(index)
 		          type: 'datetime',
                   ordinal: false,
                   <?php printObjectInitCode(XAXIS_OBJ);?>,
-                  labels:{style: { <?php printObjectInitCode(XAXISSTYLE_OBJ);?>}},
+                  labels:{style: { <?php printObjectInitCode(XAXISSTYLE_OBJ);?>}}
+                  
+               
                 
                   },
 		
@@ -1974,16 +1990,46 @@ function newGraph(index)
          },
 						
         
+        navigation: {
+            buttonOptions: {
+               <?php printObjectInitCode(EXPORTBTN_OBJ);?>
+        } },
+        
 		
 		yAxis: [
+        
+      
 <?php
 $indent = "           ";
 for ($j = 0; $j < MAX_YAXIS_PER_GRAPH; $j++) {
-    if ($j > 0)
+   if ($j > 0)
         print(",\n");
     
+   if ($j==0) //  bands  on the 1srt y axis onbly.
+    { Printf("{$indent}{plotBands: [\n");
+      for ($k=0;$k<MAX_YBAND_PER_GRAPH;$k++)
+       {  $firstInList = true;
+          if ($k>0) print(",");
+          print("{$indent}{"); 
+          for ($i = 0; $i < sizeof($GRAPH_EDITABLE_VALUES); $i++)
+          if ($GRAPH_EDITABLE_VALUES[$i]['appliesTo'] & YBAND_OBJ)  
+             if ($GRAPH_EDITABLE_VALUES[$i]['index'] ==$k)              
+               {  if (!$firstInList)  print(",\n{$indent}  ");
+                  $firstInList = false;
+                  $name        = $GRAPH_EDITABLE_VALUES[$i]['name'];
+                  $prefix      = $GRAPH_EDITABLE_VALUES[$i]['prefix'];
+                  if ($prefix != '') $prefix .= '_';
+                  Printf("%s: widgets[index].%s%s_%d", $name, $prefix, $name, $k);
+                       
+               }
+          print("\n{$indent}}\n");        
+       }
+       print("],\n");
+    } else print('{');       
+             
+    
   
-    Printf("{$indent}{title:{");
+    Printf("{$indent}title:{");
     $firstInList = true;
     for ($i = 0; $i < sizeof($GRAPH_EDITABLE_VALUES); $i++)
     { if ($GRAPH_EDITABLE_VALUES[$i]['appliesTo'] & YAXISTITLE_OBJ)
@@ -2690,7 +2736,9 @@ for ($i = 0; $i < sizeof($GRAPH_EDITABLE_VALUES); $i++)
             Printf("{$indent}if(str_field=='%s%s') { options.xAxis[0].%s=%s;optionschanged=true;}\n", $prefix, $name, $name, $value); 
         if ($GRAPH_EDITABLE_VALUES[$i]['appliesTo'] & TITLESTYLE_OBJ)
             Printf("{$indent}if(str_field=='%s%s') { options.title.style.%s=%s;optionschanged=true;}\n", $prefix, $name, $name, $value); 
-        
+         if ($GRAPH_EDITABLE_VALUES[$i]['appliesTo'] & EXPORTBTN_OBJ)
+            Printf("{$indent}if(str_field=='%s%s') { options.navigation.buttonOptions.%s=%s;optionschanged=true;}\n", $prefix, $name, $name, $value); 
+          
         if ($GRAPH_EDITABLE_VALUES[$i]['appliesTo'] & XAXISSTYLE_OBJ)
             Printf("{$indent}if(str_field=='%s%s') { options.xAxis[0].labels.style.%s=%s;optionschanged=true;}\n", $prefix, $name, $name, $value); 
         if ($GRAPH_EDITABLE_VALUES[$i]['appliesTo'] & YAXISSTYLE_OBJ)
@@ -2728,6 +2776,14 @@ for ($i = 0; $i < sizeof($GRAPH_EDITABLE_VALUES); $i++)
                         Printf("{$indent}if(str_field=='%s%s_%d') { options.yAxis[%s].%s=%s;optionschanged=true; };\n", $prefix, $name, $j, $j, $name, $value);
                         break;
                 }
+        
+        if ($GRAPH_EDITABLE_VALUES[$i]['appliesTo'] & YBAND_OBJ)
+            for ($j = 0; $j < MAX_YBAND_PER_GRAPH; $j++)
+             {  Printf("{$indent}if(str_field=='%s%s_%d') { options.yAxis[0].plotBands[%s].%s=%s;optionschanged=true; };\n", $prefix, $name, $j, $j, $name, $value);
+             }
+        
+        
+        
         if ($GRAPH_EDITABLE_VALUES[$i]['name'] == 'showmax') {
             Printf("{$indent}if(str_field=='%s%s_%d') { options.series[%d].visible=%s;optionschanged=true;}\n", $prefix, $name, $j, $index * 3, $value);
         }
@@ -3665,7 +3721,7 @@ function printEditorInnerCode($inputprefix, $EDITABLE_VALUES)
                         Printf("</select></td></tr>\n");
                         break;
                     case TYPE_BOOL:
-                        Printf("<tr><td>%s:</td><td><select  id='%seditor_%s%s%s' onchange='$refreshFct(\"%s%s\"%s)'$alt>\n", $EDITABLE_VALUES[$i]['caption'], $inputprefix, $prefix, $name, $suffix, $prefix, $name, $param2);
+                        Printf("<tr><td>%s:</td><td><select  id='%seditor_%s%s%s' onchange='$refreshFct(\"%s%s\"%s)' $alt>\n", $EDITABLE_VALUES[$i]['caption'], $inputprefix, $prefix, $name, $suffix, $prefix, $name, $param2);
                         Print("<option value='true'>Yes</option>\n");
                         Print("<option value='false'>No</option>\n");
                         Printf("</select></td></tr>\n");

@@ -1,7 +1,7 @@
 <?php
 /*********************************************************************
  *
- * $Id: yocto_api.php 23775 2016-04-06 07:49:51Z seb $
+ * $Id: yocto_api.php 29240 2017-11-23 13:29:57Z seb $
  *
  * High-level programming interface, common to all modules
  *
@@ -70,7 +70,7 @@ define('Y_FRIENDLYNAME_INVALID',       YAPI_INVALID_STRING);
 if(!defined('Y_LOGICALNAME_INVALID'))        define('Y_LOGICALNAME_INVALID',       YAPI_INVALID_STRING);
 if(!defined('Y_ADVERTISEDVALUE_INVALID'))    define('Y_ADVERTISEDVALUE_INVALID',   YAPI_INVALID_STRING);
 //--- (end of generated code: YFunction definitions)
-
+define('YAPI_HASH_BUF_SIZE', 28);
 //--- (generated code: YMeasure definitions)
 //--- (end of generated code: YMeasure definitions)
 if(!defined('Y_DATA_INVALID'))               define('Y_DATA_INVALID',              YAPI_INVALID_DOUBLE);
@@ -86,6 +86,11 @@ if(!defined('Y_DURATION_INVALID'))           define('Y_DURATION_INVALID',       
 //--- (end of generated code: YDataSet definitions)
 
 //--- (generated code: YSensor definitions)
+if(!defined('Y_ADVMODE_IMMEDIATE'))          define('Y_ADVMODE_IMMEDIATE',         0);
+if(!defined('Y_ADVMODE_PERIOD_AVG'))         define('Y_ADVMODE_PERIOD_AVG',        1);
+if(!defined('Y_ADVMODE_PERIOD_MIN'))         define('Y_ADVMODE_PERIOD_MIN',        2);
+if(!defined('Y_ADVMODE_PERIOD_MAX'))         define('Y_ADVMODE_PERIOD_MAX',        3);
+if(!defined('Y_ADVMODE_INVALID'))            define('Y_ADVMODE_INVALID',           -1);
 if(!defined('Y_UNIT_INVALID'))               define('Y_UNIT_INVALID',              YAPI_INVALID_STRING);
 if(!defined('Y_CURRENTVALUE_INVALID'))       define('Y_CURRENTVALUE_INVALID',      YAPI_INVALID_DOUBLE);
 if(!defined('Y_LOWESTVALUE_INVALID'))        define('Y_LOWESTVALUE_INVALID',       YAPI_INVALID_DOUBLE);
@@ -166,7 +171,8 @@ define('PUBVAL_YOCTO_FLOAT_E6', 10);   // 32-bit Yocto fixed-point format (e-6)
 
 define('YOCTO_PUBVAL_LEN',   16);
 define('YOCTO_PUBVAL_SIZE',   6);
-
+define('YOCTO_SERIAL_LEN', 20);
+define('YOCTO_BASE_SERIAL_LEN', 8);
 
 //
 // Class used to report exceptions within Yocto-API
@@ -239,6 +245,7 @@ class YTcpHub
     public $missing;                    // list of missing devices during updateDeviceList
     public $writeProtected;             // true if an adminPassword is set
     public $user;                       // user for authentication
+    public $callbackData;               // raw HTTP callback data received
     public $callbackCache;              // pre-parsed cache for callback-based API
     public $reuseskt;                   // keep-alive socket to be reused
     protected $realm;                   // hub authentication realm
@@ -271,23 +278,67 @@ class YTcpHub
         $this->writeProtected = false;
     }
 
-
-    function verfiyStreamAddr($fullTest=true, &$errmsg='')
+    /**
+     * @param mixed
+     * @param mixed
+     * @return mixed
+     */
+    static function decodeJZON($jzon, $ref)
     {
-        if($this->streamaddr == 'tcp://CALLBACK/') {
+        $res = array();
+        $ofs = 0;
+        if (is_array($ref)) {
+            foreach ($ref as $key => $value) {
+                if (key_exists($key, $jzon)) {
+                    $res[$key] = self::decodeJZON($jzon[$key], $value);
+                } else if (isset($jzon[$ofs])){
+                    $res[$key] = self::decodeJZON($jzon[$ofs], $value);
+                }
+                $ofs++;
+            }
+            return $res;
+        }
+        return $jzon;
+    }
+    /**
+     * @param array
+     * @return mixed
+     */
+    static function cleanJsonRef($ref)
+    {
+        $res = array();
+        foreach ($ref as $key => $value) {
+            if (is_array($value)) {
+                $res[$key] = self::cleanJsonRef($value);
+            } else if ($key =="serialNumber"){
+                $res[$key] = substr($value,0, YOCTO_BASE_SERIAL_LEN);
+            } else if ($key =="firmwareRelease") {
+                $res[$key] = $value;
+            } else {
+                $res[$key] = "";
+            }
+        }
+        return $res;
+    }
 
-            if (!isset($_SERVER['REQUEST_METHOD']) || $_SERVER['REQUEST_METHOD'] != 'POST'){
+
+
+    function verfiyStreamAddr($fullTest = true, &$errmsg = '')
+    {
+        if ($this->streamaddr == 'tcp://CALLBACK/') {
+
+            if (!isset($_SERVER['REQUEST_METHOD']) || $_SERVER['REQUEST_METHOD'] != 'POST') {
                 $errmsg = "invalid request method";
                 $this->callbackCache = Array();
                 return YAPI_IO_ERROR;
             }
 
-            if (!isset($_SERVER['CONTENT_TYPE']) || $_SERVER['CONTENT_TYPE'] != 'application/json'){
+            if (!isset($_SERVER['CONTENT_TYPE']) || $_SERVER['CONTENT_TYPE'] != 'application/json') {
                 $errmsg = "invalid content type";
                 $this->callbackCache = Array();
                 return YAPI_IO_ERROR;
             }
-            if (!isset($_SERVER['HTTP_USER_AGENT'])){
+            if (!isset($_SERVER['HTTP_USER_AGENT'])) {
                 $errmsg = "not agent provided";
                 $this->callbackCache = Array();
                 return YAPI_IO_ERROR;
@@ -302,22 +353,24 @@ class YTcpHub
 
             if ($fullTest) {
                 $data = file_get_contents('php://input', 'rb');
-                if($data == "") {
+                $this->callbackData = $data;
+                if ($data == "") {
                     $errmsg = "RegisterHub(callback) used without posting YoctoAPI data";
                     Print("\n!YoctoAPI:$errmsg\n");
                     $this->callbackCache = Array();
                     return YAPI_IO_ERROR;
                 } else {
-                    $this->callbackCache = json_decode(utf8_encode($data), true);
-                    if(is_null($this->callbackCache)) {
+                    $utf8_encode = utf8_encode($data);
+                    $this->callbackCache = json_decode($utf8_encode, true);
+                    if (is_null($this->callbackCache)) {
                         $errmsg = "invalid data:[\n$data\n]";
                         Print("\n!YoctoAPI:$errmsg\n");
                         $this->callbackCache = Array();
                         return YAPI_IO_ERROR;
                     }
-                    if($this->pwd != '') {
+                    if ($this->pwd != '') {
                         // callback data signed, verify signature
-                        if(!isset($this->callbackCache['sign'])) {
+                        if (!isset($this->callbackCache['sign'])) {
                             $errmsg = "missing signature from incoming YoctoHub (callback password required)";
                             Print("\n!YoctoAPI:$errmsg\n");
                             $this->callbackCache = Array();
@@ -325,10 +378,10 @@ class YTcpHub
                         }
                         $sign = $this->callbackCache['sign'];
                         $salt = $this->pwd;
-                        if(strlen($salt) != 32) $salt = md5($salt);
+                        if (strlen($salt) != 32) $salt = md5($salt);
                         $data = str_replace($sign, strtolower($salt), $data);
                         $check = strtolower(md5($data));
-                        if($check != $sign) {
+                        if ($check != $sign) {
                             //Print("Computed signature: $check\n");
                             //Print("Received signature: $sign\n");
                             $errmsg = "invalid signature from incoming YoctoHub (invalid callback password)";
@@ -336,6 +389,69 @@ class YTcpHub
                             $this->callbackCache = Array();
                             return YAPI_UNAUTHORIZED;
                         }
+                    }
+                    if (isset($this->callbackCache['serial']) && !is_null(YAPI::$_jzonCacheDir)) {
+                        $jzonCacheDir = YAPI::$_jzonCacheDir;
+                        $mergedCache = array();
+                        $upToDate = true;
+                        foreach ($this->callbackCache as $req => $value) {
+                            $pos = strpos($req, "/api.json");
+                            if ($pos !== False) {
+                                $fwpos = strpos($req, "?fw=", $pos);
+                                $isJZON = false;
+                                if ($fwpos !== False) {
+                                    if (key_exists('module', $value)) {
+                                        // device did not returned JZON (probably due to fw update)
+                                        $req = substr($req, 0, $fwpos);
+                                    } else {
+                                        $isJZON = true;
+                                    }
+                                }
+                                if ($isJZON) {
+                                    if ($pos == 0) {
+                                        $serial = $this->callbackCache['serial'];
+                                    } else {
+                                        // "/bySerial/" = 10 chars
+                                        $serial = substr($req, 10, $pos - 10);
+                                    }
+                                    $firm = substr($req, $fwpos + 4);
+                                    $base = substr($serial,0, YOCTO_BASE_SERIAL_LEN);
+                                    if (!is_file("{$jzonCacheDir}{$base}_{$firm}.json")) {
+                                        $errmsg = "No JZON reference file for {$serial}/{$firm}";
+                                        Print("\n!YoctoAPI:$errmsg\n");
+                                        $this->callbackCache = Array();
+                                        Print("\n@YoctoAPI:#!noref\n");
+                                        return YAPI_IO_ERROR;
+                                    }
+                                    $ref = file_get_contents("{$jzonCacheDir}{$base}_{$firm}.json");
+                                    $ref = json_decode($ref, true);
+                                    $decoded = self::decodeJZON($value, $ref);
+                                    if ($ref['module']['firmwareRelease'] != $decoded['module']['firmwareRelease']) {
+                                        $errmsg = "invalid JZON data";
+                                        Print("\n!YoctoAPI:$errmsg\n");
+                                        $this->callbackCache = Array();
+                                        Print("\n@YoctoAPI:#!invalid\n");
+                                        return YAPI_IO_ERROR;
+                                    }
+                                    $req = substr($req, 0, $fwpos);
+                                    $mergedCache[$req] = $decoded;
+                                    //Print("Use jzon data for{$serial}/{$firm}\n");
+                                } else {
+                                    $serial = $value['module']['serialNumber'];
+                                    $base = substr($serial,0, YOCTO_BASE_SERIAL_LEN);
+                                    $firm = $value['module']['firmwareRelease'];
+                                    $clean_struct = self::cleanJsonRef($value);
+                                    file_put_contents("{$jzonCacheDir}{$base}_{$firm}.json", json_encode($clean_struct));
+                                    $mergedCache[$req] = $value;
+                                    Print("\n@YoctoAPI:#{$serial}/{$firm}\n");
+                                    $upToDate=false;
+                                }
+                            }
+                        }
+                        if ($upToDate) {
+                            Print("\n@YoctoAPI:#=\n");
+                        }
+                        $this->callbackCache = $mergedCache;
                     }
                 }
             }
@@ -973,6 +1089,13 @@ class YFunctionType
         return $this->_baseType;
     }
 
+    public function matchBaseType($baseType)
+    {
+        if ($baseType == 0)
+            return true;
+        return $this->_baseType == $baseType;
+    }
+
     // Find the the hardwareId of the first instance of a given function class
     public function getFirstHardwareId()
     {
@@ -1376,8 +1499,8 @@ class YAPI
     const INVALID_DOUBLE    = YAPI_INVALID_DOUBLE;
     const INVALID_LONG      = YAPI_INVALID_LONG;
 
-//--- (generated code: return codes)
-    const SUCCESS               = 0;       // everything worked allright
+//--- (generated code: YFunction return codes)
+    const SUCCESS               = 0;       // everything worked all right
     const NOT_INITIALIZED       = -1;      // call yInitAPI() first !
     const INVALID_ARGUMENT      = -2;      // one of the arguments passed to the function is invalid
     const NOT_SUPPORTED         = -3;      // the operation attempted is (currently) not supported
@@ -1387,11 +1510,12 @@ class YAPI
     const TIMEOUT               = -7;      // the device took too long to provide an answer
     const IO_ERROR              = -8;      // there was an I/O problem while talking to the device
     const NO_MORE_DATA          = -9;      // there is no more data to read from
-    const EXHAUSTED             = -10;     // you have run out of a limited ressource, check the documentation
-    const DOUBLE_ACCES          = -11;     // you have two process that try to acces to the same device
+    const EXHAUSTED             = -10;     // you have run out of a limited resource, check the documentation
+    const DOUBLE_ACCES          = -11;     // you have two process that try to access to the same device
     const UNAUTHORIZED          = -12;     // unauthorized access to password-protected device
     const RTC_NOT_READY         = -13;     // real-time clock has not been initialized (or time was lost)
-//--- (end of generated code: return codes)
+    const FILE_NOT_FOUND        = -14;     // the file is not found
+//--- (end of generated code: YFunction return codes)
 
     // yInitAPI constants (not really useful in JavaScript)
     const DETECT_NONE           = 0;
@@ -1430,6 +1554,12 @@ class YAPI
     protected static $_calibHandlers;
     protected static $_decExp;
 
+    /**
+     * @var string
+     */
+    static $_jzonCacheDir;
+
+
     // PUBLIC GLOBAL SETTINGS
 
     // Default cache validity (in [ms]) before reloading data from device. This saves a lots of trafic.
@@ -1457,6 +1587,7 @@ class YAPI
         self::$_removalCallback = null;
         self::$_data_events = Array();
         self::$_pendingRequests = Array();
+        self::$_jzonCacheDir = null;
 
         self::$_decExp = Array(
             1.0e-6, 1.0e-5, 1.0e-4, 1.0e-3, 1.0e-2, 1.0e-1, 1.0,
@@ -2121,7 +2252,7 @@ class YAPI
         $baseType = self::$BASETYPES[$str_className];
         $res = null;
         foreach(self::$_fnByType as $str_className => $funtype) {
-            if($funtype->getBaseType() == $baseType) {
+            if($funtype->matchBaseType($baseType)) {
                 $res = $funtype->resolve($str_func);
                 if($res->errorType == YAPI_SUCCESS) return $res;
             }
@@ -2145,7 +2276,7 @@ class YAPI
         $baseType = self::$BASETYPES[$str_className];
         $res = null;
         foreach(self::$_fnByType as $str_className => $funtype) {
-            if($funtype->getBaseType() == $baseType) {
+            if($funtype->matchBaseType($baseType)) {
                 $res = $funtype->getFriendlyName($str_func);
                 if($res->errorType == YAPI_SUCCESS) return $res;
             }
@@ -2230,7 +2361,7 @@ class YAPI
         $baseType = self::$BASETYPES[$str_className];
         $res = null;
         foreach(self::$_fnByType as $funtype) {
-            if($funtype->getBaseType() == $baseType) {
+            if($funtype->matchBaseType($baseType)) {
                 $res = $funtype->getFirstHardwareId();
                 if(!is_null($res)) return $res;
             }
@@ -2257,7 +2388,7 @@ class YAPI
                 $prevclass = "";
                 continue;
             }
-            if($funtype->getBaseType() == $baseType) {
+            if($funtype->matchBaseType($baseType)) {
                 $res = $funtype->getFirstHardwareId();
                 if(!is_null($res)) return $res;
             }
@@ -2327,7 +2458,7 @@ class YAPI
             return new YAPI_YReq("", YAPI_DEVICE_NOT_FOUND, 'No hub registered on '.$baseUrl, null);
         }
         $hub = self::$_hubs[$rooturl];
-        if($async && $hub->writeProtected && $hub->user != 'admin') {
+        if($async && $hub->writeProtected && $hub->user != 'admin' && !$hub->isCachedHub()) {
             // async query, make sure the hub is not write-protected
             return new YAPI_YReq("", YAPI_UNAUTHORIZED,
                                  'Access denied: admin credentials required',
@@ -2392,7 +2523,7 @@ class YAPI
     /**
      * Retrun the serialnummber of all subdevcies
      * @param string $str_device
-     * @return array of string 
+     * @return array of string
      */
     public static function getSubDevicesFrom($str_device)
     {
@@ -2554,11 +2685,67 @@ class YAPI
      * number is greater or equal. The build number is not relevant
      * with respect to the library compatibility.
      *
-     * @return a character string describing the library version.
+     * @return string : a character string describing the library version.
      */
     public static function GetAPIVersion()
     {
-        return "1.10.24718";
+        return "1.10.29316";
+    }
+
+    /**
+     * Enables the HTTP callback cache. When enabled, this cache reduces the quantity of data sent to the
+     * PHP script by 50% to 70%. To enable this cache, the method ySetHTTPCallbackCacheDir()
+     * must be called before any call to yRegisterHub(). This method takes in parameter the path
+     * of the directory used for saving data between each callback. This folder must exist and the
+     * PHP script needs to have write access to it. It is recommended to use a folder that is not published
+     * on the Web server since the library will save some data of Yoctopuce devices into this folder.
+     *
+     * Note: This feature is supported by YoctoHub and VirtualHub since version 27750.
+     *
+     * @param str_directory : the path of the folder that will be used as cache.
+     *
+     * @return nothing.
+     *
+     * On failure, throws an exception.
+     */
+    public static function SetHTTPCallbackCacheDir($str_directory)
+    {
+        if (is_null(self::$_hubs)) self::_init();
+        if (!is_dir($str_directory)) {
+            throw new YAPI_Exception("Directory does not exist");
+        }
+        if (!is_dir($str_directory)) {
+            throw new YAPI_Exception("Directory does not exist");
+        }
+        if (!is_writable($str_directory)) {
+            throw new YAPI_Exception("Directory is not writable");
+        }
+
+        if (substr($str_directory, -1) != '/')
+            $str_directory .= '/';
+        self::$_jzonCacheDir = $str_directory;
+    }
+
+    /**
+     * Disables the HTTP callback cache. This method disables the HTTP callback cache, and
+     * can additionally cleanup the cache directory.
+     *
+     * @param bool_removeFiles : True to clear the content of the cache.
+     *
+     * @return nothing.
+     */
+    public static function ClearHTTPCallbackCacheDir($bool_removeFiles)
+    {
+        if (is_null(self::$_hubs) or is_null(self::$_jzonCacheDir)) return;
+
+        if ($bool_removeFile && is_dir(self::$_jzonCacheDir)) {
+            $files = glob(self::$_jzonCacheDir . "{,.}*.json", GLOB_BRACE); // get all file names
+            foreach ($files as $file) {
+                if (is_file($file))
+                    unlink($file);
+            }
+        }
+        self::$_jzonCacheDir = null;
     }
 
     /**
@@ -2571,13 +2758,13 @@ class YAPI
      * you must explicitly use yRegisterHub() to point the API to the
      * VirtualHub on which your devices are connected before trying to access them.
      *
-     * @param mode : an integer corresponding to the type of automatic
+     * @param integer $mode : an integer corresponding to the type of automatic
      *         device detection to use. Possible values are
      *         Y_DETECT_NONE, Y_DETECT_USB, Y_DETECT_NET,
      *         and Y_DETECT_ALL.
-     * @param errmsg : a string passed by reference to receive any error message.
+     * @param errmsg {YErrorMsg} : a string passed by reference to receive any error message.
      *
-     * @return YAPI_SUCCESS when the call succeeds.
+     * @return integer : YAPI_SUCCESS when the call succeeds.
      *
      * On failure, throws an exception or returns a negative error code.
      */
@@ -2599,6 +2786,17 @@ class YAPI
      */
     public static function FreeAPI()
     {
+        // leave max 10 second to finish pending requests
+        $timeout = YAPI::GetTickCount() + 10000;
+        foreach (self::$_pendingRequests as $tcpreq) {
+            $request = trim($tcpreq->request);
+            if (substr($request, 0, 12) == 'GET /not.byn') {
+                continue;
+            }
+            while (!$tcpreq->eof() && YAPI::GetTickCount() < $timeout) {
+                self::_handleEvents_internal(100);
+            }
+        }
         // clear all caches
         self::_init();
     }
@@ -2695,11 +2893,11 @@ class YAPI
      *
      * You can call <i>RegisterHub</i> several times to connect to several machines.
      *
-     * @param url : a string containing either "usb","callback" or the
+     * @param string $url : a string containing either "usb","callback" or the
      *         root URL of the hub to monitor
-     * @param errmsg : a string passed by reference to receive any error message.
+     * @param errmsg {YErrorMsg} : a string passed by reference to receive any error message.
      *
-     * @return YAPI_SUCCESS when the call succeeds.
+     * @return integer : YAPI_SUCCESS when the call succeeds.
      *
      * On failure, throws an exception or returns a negative error code.
      */
@@ -2761,11 +2959,11 @@ class YAPI
      * This makes it possible to register a network hub independently of the current
      * connectivity, and to try to contact it only when a device is actively needed.
      *
-     * @param url : a string containing either "usb","callback" or the
+     * @param string $url : a string containing either "usb","callback" or the
      *         root URL of the hub to monitor
-     * @param errmsg : a string passed by reference to receive any error message.
+     * @param errmsg {YErrorMsg} : a string passed by reference to receive any error message.
      *
-     * @return YAPI_SUCCESS when the call succeeds.
+     * @return integer : YAPI_SUCCESS when the call succeeds.
      *
      * On failure, throws an exception or returns a negative error code.
      */
@@ -2793,10 +2991,9 @@ class YAPI
      * Setup the Yoctopuce library to no more use modules connected on a previously
      * registered machine with RegisterHub.
      *
-     * @param url : a string containing either "usb" or the
+     * @param string $url : a string containing either "usb" or the
      *         root URL of the hub to monitor
      */
-
     public static function UnregisterHub($url)
     {
         if (is_null(self::$_hubs))
@@ -2819,19 +3016,18 @@ class YAPI
         self::$_hubs = $new_hubs;
     }
 
-
     /**
      * Test if the hub is reachable. This method do not register the hub, it only test if the
      * hub is usable. The url parameter follow the same convention as the RegisterHub
      * method. This method is useful to verify the authentication parameters for a hub. It
      * is possible to force this method to return after mstimeout milliseconds.
      *
-     * @param url : a string containing either "usb","callback" or the
+     * @param string $url : a string containing either "usb","callback" or the
      *         root URL of the hub to monitor
-     * @param mstimeout : the number of millisecond available to test the connection.
-     * @param errmsg : a string passed by reference to receive any error message.
+     * @param integer $mstimeout : the number of millisecond available to test the connection.
+     * @param errmsg {YErrorMsg} : a string passed by reference to receive any error message.
      *
-     * @return YAPI_SUCCESS when the call succeeds.
+     * @return integer : YAPI_SUCCESS when the call succeeds.
      *
      * On failure returns a negative error code.
      */
@@ -2874,6 +3070,173 @@ class YAPI
         return YAPI_SUCCESS;
     }
 
+    static public function _forwardHTTPreq($host, $relurl, $cbdata, &$errmsg)
+    {
+        $errno = 0;
+        $errstr = '';
+        $implicitPort = '';
+        if(strpos($host,':') === false) {
+            $implicitPort = ':80';
+        }
+        $skt = stream_socket_client("tcp://$host$implicitPort", $errno, $errstr, 10);
+        if ($skt === false) {
+            $errmsg = "failed to open socket ($errno): $errstr";
+            return YAPI_IO_ERROR;
+        }
+        $request = "POST $relurl HTTP/1.1\r\nHost: $host\r\nConnection: close\r\n";
+        $request .= "User-Agent: ".$_SERVER['HTTP_USER_AGENT']."\r\n";
+        $request .= "Content-Type: application/json\r\n";
+        $request .= "Content-Length: ".strlen($cbdata)."\r\n\r\n";
+        $reqlen = strlen($request);
+        if (fwrite($skt, $request, $reqlen) != $reqlen) {
+            fclose($skt);
+            $errmsg = "failed to write to socket";
+            return YAPI_IO_ERROR;
+        }
+        $bodylen = strlen($cbdata);
+        fwrite($skt, $cbdata, $bodylen);
+        stream_set_blocking($skt, 0);
+        $header = '';
+        $headerOK = false;
+        $chunked = false;
+        $chunkhdr = '';
+        $chunksize = 0;
+        while(true) {
+            $data = fread($skt, 8192);
+            if($data === false || !is_resource($skt)) {
+                fclose($skt);
+                $errmsg = "failed to read from socket";
+                return YAPI_IO_ERROR;
+            }
+            if(strlen($data) == 0) {
+                if(feof($skt)) {
+                    fclose($skt);
+                    if(!$headerOK) {
+                        $errmsg = "connection closed unexpectly";
+                        return YAPI_IO_ERROR;
+                    }
+                    return YAPI_SUCCESS;
+                } else {
+                    $rd = Array($skt);
+                    $wr = NULL;
+                    $ex = NULL;
+                    if(false === ($select_res = stream_select($rd, $wr, $ex, 0, 1000000))) {
+                        $errmsg = "stream select error";
+                        return YAPI_IO_ERROR;
+                    }
+                }
+                continue;
+            }
+            if(!$headerOK) {
+                $header .= $data;
+                $data = '';
+                $eoh = strpos($header, "\r\n\r\n");
+                if($eoh !== false) {
+                    // fully received header
+                    $headerOK = true;
+                    $data = substr($header, $eoh+4);
+                    $header = substr($header, 0, $eoh+4);
+                    $lines = explode("\r\n", preg_replace('/\x0D\x0A[\x09\x20]+/', ' ', $header));
+                    $meta = array();
+                    foreach($lines as $line) {
+                        if(preg_match('/([^:]+): (.+)/m', $line, $match)) {
+                            $match[1] = preg_replace('/(?<=^|[\x09\x20\x2D])./e', 'strtoupper("\0")', strtolower(trim($match[1])));
+                            $meta[$match[1]] = trim($match[2]);
+                        }
+                    }
+                    $firstline = $lines[0];
+                    $words = explode(' ', $firstline);
+                    $code = $words[1];
+                    if($code == '401') {
+                        fclose($skt);
+                        $errmsg = "HTTP Authentication not supported";
+                        return YAPI_UNAUTHORIZED;
+                    } else if($code == '101') {
+                        fclose($skt);
+                        $errmsg = "Websocket not supported";
+                        return YAPI_NOT_SUPPORTED;
+                    } else if($code >= '300' && $code <= '302' && isset($meta['Location'])) {
+                        fclose($skt);
+                        return self::_forwardHTTPreq($host, $meta['Location'], $cbdata, $errmsg);
+                    } else if(substr($code,0,2) != '20' || $code[2] == '3') {
+                        fclose($skt);
+                        $errmsg = "HTTP error".substr($firstline, strlen($words[0]));
+                        return YAPI_NOT_SUPPORTED;
+                    }
+                    $chunked = isset($meta['Transfer-Encoding']) && strtolower($meta['Transfer-Encoding']) == 'chunked';
+                }
+            }
+            // process body according to encoding
+            if(!$chunked) {
+                print $data;
+                continue;
+            }
+            // chunk decoding
+            while(strlen($data) > 0) {
+                if($chunksize == 0) {
+                    // reading chunk size
+                    $chunkhdr .= $data;
+                    if(substr($chunkhdr, 0, 2) == "\r\n") {
+                        $chunkhdr = substr($chunkhdr,2);
+                    }
+                    $endhdr = strpos($chunkhdr, "\r\n");
+                    if($endhdr !== false) {
+                        $data = substr($chunkhdr, $endhdr+2);
+                        $sizestr = substr($chunkhdr, 0, $endhdr);
+                        $chunksize = hexdec($sizestr);
+                        $chunkhdr = '';
+                    } else {
+                        $data = '';
+                    }
+                } else {
+                    // reading chunk data
+                    $datalen = strlen($data);
+                    if($datalen > $chunksize) {
+                        $datalen = $chunksize;
+                    }
+                    print(substr($data,0,$datalen));
+                    $data = substr($data,$datalen);
+                    $chunksize -= $datalen;
+                }
+            }
+        }
+    }
+
+    /**
+     * Trigger an HTTP request to another server, and forward the HTTP callback data
+     * previously received from a YoctoHub. This function only works after a successful
+     * call to yRegisterHub("callback")
+     *
+     * @param url : a string containing the URL of the server to which the HTTP callback
+     *              should be forwarded
+     * @param errmsg : a string passed by reference to receive any error message.
+     *
+     * @return YAPI_SUCCESS when the call succeeds.
+     *
+     * On failure, throws an exception or returns a negative error code.
+     */
+    public static function ForwardHTTPCallback($url,&$errmsg="")
+    {
+        $rooturl = 'callback';
+        $auth = '';
+        self::_parseRegisteredURL('callback', $rooturl, $auth);
+        if(isset(self::$_hubs[$rooturl])) {
+            $cb_hub = self::$_hubs[$rooturl];
+            // data to post is found in $cb_hub->callbackData
+            $url = str_replace('http://', '', $url);
+            $pos = strpos($url, '/');
+            if($pos === FALSE) {
+                $relurl = '/';
+            } else {
+                $relurl = substr($url, $pos);
+                $url = substr($url, 0, $pos);
+            }
+            return self::_forwardHTTPreq($url, $relurl, $cb_hub->callbackData, $errmsg);
+        } else {
+            $errmsg = 'ForwardHTTPCallback must be called AFTER RegisterHub("callback")';
+            return YAPI_NOT_INITIALIZED;
+        }
+    }
 
     /**
      * Triggers a (re)detection of connected Yoctopuce modules.
@@ -2884,9 +3247,9 @@ class YAPI
      * This function can be called as frequently as desired to refresh the device list
      * and to make the application aware of hot-plug events.
      *
-     * @param errmsg : a string passed by reference to receive any error message.
+     * @param errmsg {YErrorMsg} : a string passed by reference to receive any error message.
      *
-     * @return YAPI_SUCCESS when the call succeeds.
+     * @return integer : YAPI_SUCCESS when the call succeeds.
      *
      * On failure, throws an exception or returns a negative error code.
      */
@@ -2911,9 +3274,9 @@ class YAPI
      * This function may signal an error in case there is a communication problem
      * while contacting a module.
      *
-     * @param errmsg : a string passed by reference to receive any error message.
+     * @param errmsg {YErrorMsg} : a string passed by reference to receive any error message.
      *
-     * @return YAPI_SUCCESS when the call succeeds.
+     * @return integer : YAPI_SUCCESS when the call succeeds.
      *
      * On failure, throws an exception or returns a negative error code.
      */
@@ -2960,11 +3323,11 @@ class YAPI
      * This function may signal an error in case there is a communication problem
      * while contacting a module.
      *
-     * @param ms_duration : an integer corresponding to the duration of the pause,
+     * @param integer $ms_duration : an integer corresponding to the duration of the pause,
      *         in milliseconds.
-     * @param errmsg : a string passed by reference to receive any error message.
+     * @param errmsg {YErrorMsg} : a string passed by reference to receive any error message.
      *
-     * @return YAPI_SUCCESS when the call succeeds.
+     * @return integer : YAPI_SUCCESS when the call succeeds.
      *
      * On failure, throws an exception or returns a negative error code.
      */
@@ -2989,7 +3352,7 @@ class YAPI
      * This counter can be used to compute delays in relation with
      * Yoctopuce devices, which also uses the millisecond as timebase.
      *
-     * @return a long integer corresponding to the millisecond counter.
+     * @return integer : a long integer corresponding to the millisecond counter.
      */
     public static function GetTickCount()
     {
@@ -3003,9 +3366,9 @@ class YAPI
      * If you try to configure a logical name with an incorrect string,
      * the invalid characters are ignored.
      *
-     * @param name : a string containing the name to check.
+     * @param string $name : a string containing the name to check.
      *
-     * @return true if the name is valid, false otherwise.
+     * @return boolean : true if the name is valid, false otherwise.
      */
     public static function CheckLogicalName($name)
     {
@@ -3020,7 +3383,7 @@ class YAPI
      * a device is plugged. This callback will be invoked while yUpdateDeviceList
      * is running. You will have to call this function on a regular basis.
      *
-     * @param arrivalCallback : a procedure taking a YModule parameter, or null
+     * @param function $arrivalCallback : a procedure taking a YModule parameter, or null
      *         to unregister a previously registered  callback.
      */
     public static function RegisterDeviceArrivalCallback($arrivalCallback)
@@ -3041,7 +3404,7 @@ class YAPI
      * a device is unplugged. This callback will be invoked while yUpdateDeviceList
      * is running. You will have to call this function on a regular basis.
      *
-     * @param removalCallback : a procedure taking a YModule parameter, or null
+     * @param function $removalCallback : a procedure taking a YModule parameter, or null
      *         to unregister a previously registered  callback.
      */
     public static function RegisterDeviceRemovalCallback($removalCallback)
@@ -3253,7 +3616,7 @@ class YMeasure
      * (Unix timestamp). When the recording rate is higher then 1 sample
      * per second, the timestamp may have a fractional part.
      *
-     * @return an floating point number corresponding to the number of seconds
+     * @return double : an floating point number corresponding to the number of seconds
      *         between the Jan 1, 1970 UTC and the beginning of this measure.
      */
     public function get_startTimeUTC()
@@ -3266,7 +3629,7 @@ class YMeasure
      * (Unix timestamp). When the recording rate is higher than 1 sample
      * per second, the timestamp may have a fractional part.
      *
-     * @return an floating point number corresponding to the number of seconds
+     * @return double : an floating point number corresponding to the number of seconds
      *         between the Jan 1, 1970 UTC and the end of this measure.
      */
     public function get_endTimeUTC()
@@ -3278,7 +3641,7 @@ class YMeasure
      * Returns the smallest value observed during the time interval
      * covered by this measure.
      *
-     * @return a floating-point number corresponding to the smallest value observed.
+     * @return double : a floating-point number corresponding to the smallest value observed.
      */
     public function get_minValue()
     {
@@ -3289,7 +3652,7 @@ class YMeasure
      * Returns the average value observed during the time interval
      * covered by this measure.
      *
-     * @return a floating-point number corresponding to the average value observed.
+     * @return double : a floating-point number corresponding to the average value observed.
      */
     public function get_averageValue()
     {
@@ -3300,7 +3663,7 @@ class YMeasure
      * Returns the largest value observed during the time interval
      * covered by this measure.
      *
-     * @return a floating-point number corresponding to the largest value observed.
+     * @return double : a floating-point number corresponding to the largest value observed.
      */
     public function get_maxValue()
     {
@@ -3357,11 +3720,11 @@ class YFirmwareUpdate
      * In that case, this method returns the path of the most recent appropriate byn file. This method will
      * ignore any firmware older than minrelease.
      *
-     * @param serial : the serial number of the module to update
-     * @param path : the path of a byn file or a directory that contains byn files
-     * @param minrelease : a positive integer
+     * @param string $serial : the serial number of the module to update
+     * @param string $path : the path of a byn file or a directory that contains byn files
+     * @param integer $minrelease : a positive integer
      *
-     * @return : the path of the byn file to use, or an empty string if no byn files matches the requirement
+     * @return string : : the path of the byn file to use, or an empty string if no byn files matches the requirement
      *
      * On failure, returns a string that starts with "error:".
      */
@@ -3415,7 +3778,7 @@ class YFirmwareUpdate
      * successfully. If an error occurs during the firmware update, a negative value is returned, and the
      * error message can be retrieved with get_progressMessage.
      *
-     * @return an integer in the range 0 to 100 (percentage of completion)
+     * @return integer : an integer in the range 0 to 100 (percentage of completion)
      *         or a negative error code in case of failure.
      */
     public function get_progress()
@@ -3430,7 +3793,7 @@ class YFirmwareUpdate
      * Returns the last progress message of the firmware update process. If an error occurs during the
      * firmware update process, the error message is returned
      *
-     * @return a string  with the latest progress message, or the error message.
+     * @return string : a string  with the latest progress message, or the error message.
      */
     public function get_progressMessage()
     {
@@ -3442,7 +3805,7 @@ class YFirmwareUpdate
      * returns immediately. You can monitor the progress of the firmware update with the get_progress()
      * and get_progressMessage() methods.
      *
-     * @return an integer in the range 0 to 100 (percentage of completion),
+     * @return integer : an integer in the range 0 to 100 (percentage of completion),
      *         or a negative error code in case of failure.
      *
      * On failure returns a negative error code.
@@ -3660,7 +4023,7 @@ class YDataStream
             $this->_nRows = 0;
             return YAPI_SUCCESS;
         }
-        // may throw an exception
+
         $udat = YAPI::_decodeWords($this->_parent->_json_get_string($sdata));
         while(sizeof($this->_values) > 0) { array_pop($this->_values); };
         $idx = 0;
@@ -3697,7 +4060,7 @@ class YDataStream
                 }
             }
         }
-        
+
         $this->_nRows = sizeof($this->_values);
         return YAPI_SUCCESS;
     }
@@ -3729,7 +4092,9 @@ class YDataStream
             }
         }
         if ($this->_caltyp != 0) {
-            $val = call_user_func($this->_calhdl, $val, $this->_caltyp, $this->_calpar, $this->_calraw, $this->_calref);
+            if (!is_null($this->_calhdl)) {
+                $val = call_user_func($this->_calhdl, $val, $this->_caltyp, $this->_calpar, $this->_calraw, $this->_calref);
+            }
         }
         return $val;
     }
@@ -3748,7 +4113,9 @@ class YDataStream
             }
         }
         if ($this->_caltyp != 0) {
-            $val = call_user_func($this->_calhdl, $val, $this->_caltyp, $this->_calpar, $this->_calraw, $this->_calref);
+            if (!is_null($this->_calhdl)) {
+                $val = call_user_func($this->_calhdl, $val, $this->_caltyp, $this->_calpar, $this->_calraw, $this->_calref);
+            }
         }
         return $val;
     }
@@ -3762,7 +4129,7 @@ class YDataStream
      * Returns the run index of the data stream. A run can be made of
      * multiple datastreams, for different time intervals.
      *
-     * @return an unsigned number corresponding to the run index.
+     * @return integer : an unsigned number corresponding to the run index.
      */
     public function get_runIndex()
     {
@@ -3778,7 +4145,7 @@ class YDataStream
      * is always positive.
      * If you need an absolute UTC timestamp, use get_startTimeUTC().
      *
-     * @return an unsigned number corresponding to the number of seconds
+     * @return integer : an unsigned number corresponding to the number of seconds
      *         between the start of the run and the beginning of this data
      *         stream.
      */
@@ -3792,7 +4159,7 @@ class YDataStream
      * If the UTC time was not set in the datalogger at the time of the recording
      * of this data stream, this method returns 0.
      *
-     * @return an unsigned number corresponding to the number of seconds
+     * @return integer : an unsigned number corresponding to the number of seconds
      *         between the Jan 1, 1970 and the beginning of this data
      *         stream (i.e. Unix time representation of the absolute time).
      */
@@ -3807,7 +4174,7 @@ class YDataStream
      * per second, but the recording frequency can be changed for
      * each device function
      *
-     * @return an unsigned number corresponding to a number of milliseconds.
+     * @return integer : an unsigned number corresponding to a number of milliseconds.
      */
     public function get_dataSamplesIntervalMs()
     {
@@ -3826,7 +4193,7 @@ class YDataStream
      * this method fetches the whole data stream from the device
      * if not yet done, which can cause a little delay.
      *
-     * @return an unsigned number corresponding to the number of rows.
+     * @return integer : an unsigned number corresponding to the number of rows.
      *
      * On failure, throws an exception or returns zero.
      */
@@ -3848,7 +4215,7 @@ class YDataStream
      * this method fetches the whole data stream from the device
      * if not yet done, which can cause a little delay.
      *
-     * @return an unsigned number corresponding to the number of columns.
+     * @return integer : an unsigned number corresponding to the number of columns.
      *
      * On failure, throws an exception or returns zero.
      */
@@ -3873,7 +4240,7 @@ class YDataStream
      * this method fetches the whole data stream from the device
      * if not yet done, which can cause a little delay.
      *
-     * @return a list containing as many strings as there are columns in the
+     * @return string[] : a list containing as many strings as there are columns in the
      *         data stream.
      *
      * On failure, throws an exception or returns an empty array.
@@ -3892,7 +4259,7 @@ class YDataStream
      * If the device uses a firmware older than version 13000,
      * this method will always return Y_DATA_INVALID.
      *
-     * @return a floating-point number corresponding to the smallest value,
+     * @return double : a floating-point number corresponding to the smallest value,
      *         or Y_DATA_INVALID if the stream is not yet complete (still recording).
      *
      * On failure, throws an exception or returns Y_DATA_INVALID.
@@ -3907,7 +4274,7 @@ class YDataStream
      * If the device uses a firmware older than version 13000,
      * this method will always return Y_DATA_INVALID.
      *
-     * @return a floating-point number corresponding to the average value,
+     * @return double : a floating-point number corresponding to the average value,
      *         or Y_DATA_INVALID if the stream is not yet complete (still recording).
      *
      * On failure, throws an exception or returns Y_DATA_INVALID.
@@ -3922,7 +4289,7 @@ class YDataStream
      * If the device uses a firmware older than version 13000,
      * this method will always return Y_DATA_INVALID.
      *
-     * @return a floating-point number corresponding to the largest value,
+     * @return double : a floating-point number corresponding to the largest value,
      *         or Y_DATA_INVALID if the stream is not yet complete (still recording).
      *
      * On failure, throws an exception or returns Y_DATA_INVALID.
@@ -3935,7 +4302,7 @@ class YDataStream
     /**
      * Returns the approximate duration of this stream, in seconds.
      *
-     * @return the number of seconds covered by this stream.
+     * @return integer : the number of seconds covered by this stream.
      *
      * On failure, throws an exception or returns Y_DURATION_INVALID.
      */
@@ -3956,7 +4323,7 @@ class YDataStream
      * This method fetches the whole data stream from the device,
      * if not yet done.
      *
-     * @return a list containing as many elements as there are rows in the
+     * @return double[][] : a list containing as many elements as there are rows in the
      *         data stream. Each row itself is a list of floating-point
      *         numbers.
      *
@@ -3979,10 +4346,10 @@ class YDataStream
      * This method fetches the whole data stream from the device,
      * if not yet done.
      *
-     * @param row : row index
-     * @param col : column index
+     * @param integer $row : row index
+     * @param integer $col : column index
      *
-     * @return a floating-point number
+     * @return double : a floating-point number
      *
      * On failure, throws an exception or returns Y_DATA_INVALID.
      */
@@ -4082,7 +4449,7 @@ class YDataSet
         // $minCol                 is a int;
         // $avgCol                 is a int;
         // $maxCol                 is a int;
-        // may throw an exception
+
         if ($progress != $this->_progress) {
             return $this->_progress;
         }
@@ -4118,14 +4485,14 @@ class YDataSet
         } else {
             $maxCol = 0;
         }
-        
+
         foreach($dataRows as $each) {
             if (($tim >= $this->_startTime) && (($this->_endTime == 0) || ($tim <= $this->_endTime))) {
                 $this->_measures[] = new YMeasure($tim - $itv, $tim, $each[$minCol], $each[$avgCol], $each[$maxCol]);
             }
             $tim = $tim + $itv;
+            $tim = round($tim * 1000) / 1000.0;
         }
-        
         return $this->get_progress();
     }
 
@@ -4140,7 +4507,7 @@ class YDataSet
      * device serial number and of the hardware identifier of the function
      * (for example THRMCPL1-123456.temperature1)
      *
-     * @return a string that uniquely identifies the function (ex: THRMCPL1-123456.temperature1)
+     * @return string : a string that uniquely identifies the function (ex: THRMCPL1-123456.temperature1)
      *
      * On failure, throws an exception or returns  Y_HARDWAREID_INVALID.
      */
@@ -4159,7 +4526,7 @@ class YDataSet
      * Returns the hardware identifier of the function that performed the measure,
      * without reference to the module. For example temperature1.
      *
-     * @return a string that identifies the function (ex: temperature1)
+     * @return string : a string that identifies the function (ex: temperature1)
      */
     public function get_functionId()
     {
@@ -4169,7 +4536,7 @@ class YDataSet
     /**
      * Returns the measuring unit for the measured value.
      *
-     * @return a string that represents a physical unit.
+     * @return string : a string that represents a physical unit.
      *
      * On failure, throws an exception or returns  Y_UNIT_INVALID.
      */
@@ -4186,7 +4553,7 @@ class YDataSet
      * to reflect the timestamp of the first measure actually found in the
      * dataLogger within the specified range.
      *
-     * @return an unsigned number corresponding to the number of seconds
+     * @return integer : an unsigned number corresponding to the number of seconds
      *         between the Jan 1, 1970 and the beginning of this data
      *         set (i.e. Unix time representation of the absolute time).
      */
@@ -4203,7 +4570,7 @@ class YDataSet
      * to reflect the timestamp of the last measure actually found in the
      * dataLogger within the specified range.
      *
-     * @return an unsigned number corresponding to the number of seconds
+     * @return integer : an unsigned number corresponding to the number of seconds
      *         between the Jan 1, 1970 and the end of this data
      *         set (i.e. Unix time representation of the absolute time).
      */
@@ -4218,7 +4585,7 @@ class YDataSet
      * the progress is zero. Each time loadMore() is invoked, the progress
      * is updated, to reach the value 100 only once all measures have been loaded.
      *
-     * @return an integer in the range 0 to 100 (percentage of completion).
+     * @return integer : an integer in the range 0 to 100 (percentage of completion).
      */
     public function get_progress()
     {
@@ -4236,7 +4603,7 @@ class YDataSet
      * Loads the the next block of measures from the dataLogger, and updates
      * the progress indicator.
      *
-     * @return an integer in the range 0 to 100 (percentage of completion),
+     * @return integer : an integer in the range 0 to 100 (percentage of completion),
      *         or a negative error code in case of failure.
      *
      * On failure, throws an exception or returns a negative error code.
@@ -4247,6 +4614,12 @@ class YDataSet
         // $stream                 is a YDataStream;
         if ($this->_progress < 0) {
             $url = sprintf('logger.json?id=%s',$this->_functionId);
+            if ($this->_startTime != 0) {
+                $url = sprintf('%s&from=%u',$url,$this->_startTime);
+            }
+            if ($this->_endTime != 0) {
+                $url = sprintf('%s&to=%u',$url,$this->_endTime);
+            }
         } else {
             if ($this->_progress >= sizeof($this->_streams)) {
                 return 100;
@@ -4270,7 +4643,7 @@ class YDataSet
      * This summary is available as soon as loadMore() has
      * been called for the first time.
      *
-     * @return an YMeasure object
+     * @return YMeasure : an YMeasure object
      */
     public function get_summary()
     {
@@ -4290,7 +4663,7 @@ class YDataSet
      * This preview is available as soon as loadMore() has
      * been called for the first time.
      *
-     * @return a table of records, where each record depicts the
+     * @return YMeasure[] : a table of records, where each record depicts the
      *         measured values during a time interval
      *
      * On failure, throws an exception or returns an empty array.
@@ -4305,10 +4678,10 @@ class YDataSet
      * to a given condensed measures previously returned by get_preview().
      * The result is provided as a list of YMeasure objects.
      *
-     * @param measure : condensed measure from the list previously returned by
+     * @param YMeasure $measure : condensed measure from the list previously returned by
      *         get_preview().
      *
-     * @return a table of records, where each record depicts the
+     * @return YMeasure[] : a table of records, where each record depicts the
      *         measured values during a time interval
      *
      * On failure, throws an exception or returns an empty array.
@@ -4325,7 +4698,7 @@ class YDataSet
         // $minCol                 is a int;
         // $avgCol                 is a int;
         // $maxCol                 is a int;
-        // may throw an exception
+
         $startUtc = round($measure.get_startTimeUTC());
         $stream = null;
         foreach($this->_streams as $each) {
@@ -4357,7 +4730,7 @@ class YDataSet
         } else {
             $maxCol = 0;
         }
-        
+
         foreach($dataRows as $each) {
             if (($tim >= $this->_startTime) && (($this->_endTime == 0) || ($tim <= $this->_endTime))) {
                 $measures[] = new YMeasure($tim - $itv, $tim, $each[$minCol], $each[$avgCol], $each[$maxCol]);
@@ -4387,7 +4760,7 @@ class YDataSet
      * unless there was an unexpected adjustment of the datalogger UTC
      * clock.
      *
-     * @return a table of records, where each record depicts the
+     * @return YMeasure[] : a table of records, where each record depicts the
      *         measured value for a given time interval
      *
      * On failure, throws an exception or returns an empty array.
@@ -4555,18 +4928,20 @@ class YFunction
     /**
      * Returns the logical name of the function.
      *
-     * @return a string corresponding to the logical name of the function
+     * @return string : a string corresponding to the logical name of the function
      *
      * On failure, throws an exception or returns Y_LOGICALNAME_INVALID.
      */
     public function get_logicalName()
     {
+        // $res                    is a string;
         if ($this->_cacheExpiration <= YAPI::GetTickCount()) {
             if ($this->load(YAPI::$defaultCacheValidity) != YAPI_SUCCESS) {
                 return Y_LOGICALNAME_INVALID;
             }
         }
-        return $this->_logicalName;
+        $res = $this->_logicalName;
+        return $res;
     }
 
     /**
@@ -4575,9 +4950,9 @@ class YFunction
      * Remember to call the saveToFlash() method of the module if the
      * modification must be kept.
      *
-     * @param newval : a string corresponding to the logical name of the function
+     * @param string $newval : a string corresponding to the logical name of the function
      *
-     * @return YAPI_SUCCESS if the call succeeds.
+     * @return integer : YAPI_SUCCESS if the call succeeds.
      *
      * On failure, throws an exception or returns a negative error code.
      */
@@ -4592,18 +4967,20 @@ class YFunction
     /**
      * Returns a short string representing the current state of the function.
      *
-     * @return a string corresponding to a short string representing the current state of the function
+     * @return string : a string corresponding to a short string representing the current state of the function
      *
      * On failure, throws an exception or returns Y_ADVERTISEDVALUE_INVALID.
      */
     public function get_advertisedValue()
     {
+        // $res                    is a string;
         if ($this->_cacheExpiration <= YAPI::GetTickCount()) {
             if ($this->load(YAPI::$defaultCacheValidity) != YAPI_SUCCESS) {
                 return Y_ADVERTISEDVALUE_INVALID;
             }
         }
-        return $this->_advertisedValue;
+        $res = $this->_advertisedValue;
+        return $res;
     }
 
     public function set_advertisedValue($newval)
@@ -4631,9 +5008,13 @@ class YFunction
      * found is returned. The search is performed first by hardware name,
      * then by logical name.
      *
-     * @param func : a string that uniquely characterizes the function
+     * If a call to this object's is_online() method returns FALSE although
+     * you are certain that the matching device is plugged, make sure that you did
+     * call registerHub() at application initialization time.
      *
-     * @return a YFunction object allowing you to drive the function.
+     * @param string $func : a string that uniquely characterizes the function
+     *
+     * @return YFunction : a YFunction object allowing you to drive the function.
      */
     public static function FindFunction($func)
     {
@@ -4652,7 +5033,8 @@ class YFunction
      * This provides control over the time when the callback is triggered. For good responsiveness, remember to call
      * one of these two functions periodically. To unregister a callback, pass a null pointer as argument.
      *
-     * @param callback : the callback function to call, or a null pointer. The callback function should take two
+     * @param function $callback : the callback function to call, or a null pointer. The callback function
+     * should take two
      *         arguments: the function object of which the value has changed, and the character string describing
      *         the new advertised value.
      * @noreturn
@@ -4686,13 +5068,13 @@ class YFunction
     }
 
     /**
-     * Disable the propagation of every new advertised value to the parent hub.
+     * Disables the propagation of every new advertised value to the parent hub.
      * You can use this function to save bandwidth and CPU on computers with limited
      * resources, or to prevent unwanted invocations of the HTTP callback.
      * Remember to call the saveToFlash() method of the module if the
      * modification must be kept.
      *
-     * @return YAPI_SUCCESS when the call succeeds.
+     * @return integer : YAPI_SUCCESS when the call succeeds.
      *
      * On failure, throws an exception or returns a negative error code.
      */
@@ -4702,18 +5084,37 @@ class YFunction
     }
 
     /**
-     * Re-enable the propagation of every new advertised value to the parent hub.
+     * Re-enables the propagation of every new advertised value to the parent hub.
      * This function reverts the effect of a previous call to muteValueCallbacks().
      * Remember to call the saveToFlash() method of the module if the
      * modification must be kept.
      *
-     * @return YAPI_SUCCESS when the call succeeds.
+     * @return integer : YAPI_SUCCESS when the call succeeds.
      *
      * On failure, throws an exception or returns a negative error code.
      */
     public function unmuteValueCallbacks()
     {
         return $this->set_advertisedValue('');
+    }
+
+    /**
+     * Returns the current value of a single function attribute, as a text string, as quickly as
+     * possible but without using the cached value.
+     *
+     * @param string $attrName : the name of the requested attribute
+     *
+     * @return string : a string with the value of the the attribute
+     *
+     * On failure, throws an exception or returns an empty string.
+     */
+    public function loadAttribute($attrName)
+    {
+        // $url                    is a str;
+        // $attrVal                is a bin;
+        $url = sprintf('api/%s/%s', $this->get_functionId(), $attrName);
+        $attrVal = $this->_download($url);
+        return $attrVal;
     }
 
     public function _parserHelper()
@@ -4741,7 +5142,7 @@ class YFunction
         if($resolve->errorType != YAPI_SUCCESS) return null;
         $next_hwid = YAPI::getNextHardwareId($this->_className, $resolve->result);
         if($next_hwid == null) return null;
-        return yFindFunction($next_hwid);
+        return self::FindFunction($next_hwid);
     }
 
     /**
@@ -4832,7 +5233,7 @@ class YFunction
      * not yet been connected. This method does not trigger any USB or TCP transaction and can therefore be used in
      * a debugger.
      *
-     * @return a string that describes the function
+     * @return string : a string that describes the function
      *         (ex: Relay(MyCustomName.relay1)=RELAYLO1-123456.relay1)
      */
     public function describe()
@@ -4849,7 +5250,7 @@ class YFunction
      * The unique hardware identifier is composed of the device serial
      * number and of the hardware identifier of the function (for example RELAYLO1-123456.relay1).
      *
-     * @return a string that uniquely identifies the function (ex: RELAYLO1-123456.relay1)
+     * @return string : a string that uniquely identifies the function (ex: RELAYLO1-123456.relay1)
      *
      * On failure, throws an exception or returns  Y_HARDWAREID_INVALID.
      */
@@ -4870,7 +5271,7 @@ class YFunction
      * Returns the hardware identifier of the function, without reference to the module. For example
      * relay1
      *
-     * @return a string that identifies the function (ex: relay1)
+     * @return string : a string that identifies the function (ex: relay1)
      *
      * On failure, throws an exception or returns  Y_FUNCTIONID_INVALID.
      */
@@ -4893,7 +5294,7 @@ class YFunction
      * otherwise the serial number of the module and the hardware identifier of the function
      * (for example: MyCustomName.relay1)
      *
-     * @return a string that uniquely identifies the function using logical names
+     * @return string : a string that uniquely identifies the function using logical names
      *         (ex: MyCustomName.relay1)
      *
      * On failure, throws an exception or returns  Y_FRIENDLYNAME_INVALID.
@@ -5019,7 +5420,7 @@ class YFunction
             $bin_content = call_user_func_array('pack', array_merge(array("C*"), $bin_content));
         }
         $httpreq = 'POST /upload.html';
-    	$body = "Content-Disposition: form-data; name=\"$str_path\"; filename=\"api\"\r\n".
+        $body = "Content-Disposition: form-data; name=\"$str_path\"; filename=\"api\"\r\n" .
                 "Content-Type: application/octet-stream\r\n".
                 "Content-Transfer-Encoding: binary\r\n\r\n".$bin_content;
         $yreq = YAPI::devRequest($devid, $httpreq, true, $body);
@@ -5115,7 +5516,7 @@ class YFunction
      * No exception is raised if there is an error while trying to contact the
      * device hosting the function.
      *
-     * @return true if the function can be reached, and false otherwise
+     * @return boolean : true if the function can be reached, and false otherwise
      */
     public function isOnline()
     {
@@ -5138,7 +5539,7 @@ class YFunction
      * This method is mostly useful when using the Yoctopuce library with
      * exceptions disabled.
      *
-     * @return a number corresponding to the code of the latest error that occurred while
+     * @return integer : a number corresponding to the code of the latest error that occurred while
      *         using the function object
      */
     public function get_errorType()
@@ -5159,7 +5560,7 @@ class YFunction
      * This method is mostly useful when using the Yoctopuce library with
      * exceptions disabled.
      *
-     * @return a string corresponding to the latest error message that occured while
+     * @return string : a string corresponding to the latest error message that occured while
      *         using the function object
      */
     public function get_errorMessage()
@@ -5182,10 +5583,10 @@ class YFunction
      * used to temporarily mark the cache as valid for a longer period, in order
      * to reduce network traffic for instance.
      *
-     * @param msValidity : an integer corresponding to the validity attributed to the
+     * @param integer $msValidity : an integer corresponding to the validity attributed to the
      *         loaded function parameters, in milliseconds
      *
-     * @return YAPI_SUCCESS when the call succeeds.
+     * @return integer : YAPI_SUCCESS when the call succeeds.
      *
      * On failure, throws an exception or returns a negative error code.
      */
@@ -5231,7 +5632,7 @@ class YFunction
      * If the function cannot be located on any module, the returned instance of
      * YModule is not shown as on-line.
      *
-     * @return an instance of YModule
+     * @return YModule : an instance of YModule
      */
     public function get_module()
     {
@@ -5271,7 +5672,7 @@ class YFunction
      * This identifier can be used to test if two instances of YFunction reference the same
      * physical function on the same physical device.
      *
-     * @return an identifier of type YFUN_DESCR.
+     * @return string : an identifier of type YFUN_DESCR.
      *
      * If the function has never been contacted, the returned value is Y_FUNCTIONDESCRIPTOR_INVALID.
      */
@@ -5299,7 +5700,7 @@ class YFunction
      * This attribute is never touched directly by the API, and is at disposal of the caller to
      * store a context.
      *
-     * @return the object stored previously by the caller.
+     * @return Object : the object stored previously by the caller.
      */
     public function get_userData()
     {
@@ -5314,7 +5715,7 @@ class YFunction
      * Stores a user context provided as argument in the userData attribute of the function.
      * This attribute is never touched by the API, and is at disposal of the caller to store a context.
      *
-     * @param data : any kind of object to be stored
+     * @param Object $data : any kind of object to be stored
      * @noreturn
      */
     public function set_userData($data)
@@ -5350,6 +5751,11 @@ class YSensor extends YFunction
     const CURRENTRAWVALUE_INVALID        = YAPI_INVALID_DOUBLE;
     const LOGFREQUENCY_INVALID           = YAPI_INVALID_STRING;
     const REPORTFREQUENCY_INVALID        = YAPI_INVALID_STRING;
+    const ADVMODE_IMMEDIATE              = 0;
+    const ADVMODE_PERIOD_AVG             = 1;
+    const ADVMODE_PERIOD_MIN             = 2;
+    const ADVMODE_PERIOD_MAX             = 3;
+    const ADVMODE_INVALID                = -1;
     const CALIBRATIONPARAM_INVALID       = YAPI_INVALID_STRING;
     const RESOLUTION_INVALID             = YAPI_INVALID_DOUBLE;
     const SENSORSTATE_INVALID            = YAPI_INVALID_INT;
@@ -5364,6 +5770,7 @@ class YSensor extends YFunction
     protected $_currentRawValue          = Y_CURRENTRAWVALUE_INVALID;    // MeasureVal
     protected $_logFrequency             = Y_LOGFREQUENCY_INVALID;       // YFrequency
     protected $_reportFrequency          = Y_REPORTFREQUENCY_INVALID;    // YFrequency
+    protected $_advMode                  = Y_ADVMODE_INVALID;            // AdvertisingMode
     protected $_calibrationParam         = Y_CALIBRATIONPARAM_INVALID;   // CalibParams
     protected $_resolution               = Y_RESOLUTION_INVALID;         // MeasureVal
     protected $_sensorState              = Y_SENSORSTATE_INVALID;        // Int
@@ -5384,11 +5791,11 @@ class YSensor extends YFunction
 
     function __construct($str_func)
     {
-        //--- (YSensor constructor)
+        //--- (generated code: YSensor constructor)
         parent::__construct($str_func);
         $this->_className = 'Sensor';
 
-        //--- (end of YSensor constructor)
+        //--- (end of generated code: YSensor constructor)
     }
 
     public function _getTimedReportCallback()
@@ -5422,6 +5829,9 @@ class YSensor extends YFunction
         case 'reportFrequency':
             $this->_reportFrequency = $val;
             return 1;
+        case 'advMode':
+            $this->_advMode = intval($val);
+            return 1;
         case 'calibrationParam':
             $this->_calibrationParam = $val;
             return 1;
@@ -5438,25 +5848,27 @@ class YSensor extends YFunction
     /**
      * Returns the measuring unit for the measure.
      *
-     * @return a string corresponding to the measuring unit for the measure
+     * @return string : a string corresponding to the measuring unit for the measure
      *
      * On failure, throws an exception or returns Y_UNIT_INVALID.
      */
     public function get_unit()
     {
+        // $res                    is a string;
         if ($this->_cacheExpiration <= YAPI::GetTickCount()) {
             if ($this->load(YAPI::$defaultCacheValidity) != YAPI_SUCCESS) {
                 return Y_UNIT_INVALID;
             }
         }
-        return $this->_unit;
+        $res = $this->_unit;
+        return $res;
     }
 
     /**
      * Returns the current value of the measure, in the specified unit, as a floating point number.
      *
-     * @return a floating point number corresponding to the current value of the measure, in the specified
-     * unit, as a floating point number
+     * @return double : a floating point number corresponding to the current value of the measure, in the
+     * specified unit, as a floating point number
      *
      * On failure, throws an exception or returns Y_CURRENTVALUE_INVALID.
      */
@@ -5473,15 +5885,16 @@ class YSensor extends YFunction
             $res = $this->_currentValue;
         }
         $res = $res * $this->_iresol;
-        return round($res) / $this->_iresol;
+        $res = round($res) / $this->_iresol;
+        return $res;
     }
 
     /**
      * Changes the recorded minimal value observed.
      *
-     * @param newval : a floating point number corresponding to the recorded minimal value observed
+     * @param double $newval : a floating point number corresponding to the recorded minimal value observed
      *
-     * @return YAPI_SUCCESS if the call succeeds.
+     * @return integer : YAPI_SUCCESS if the call succeeds.
      *
      * On failure, throws an exception or returns a negative error code.
      */
@@ -5494,8 +5907,8 @@ class YSensor extends YFunction
     /**
      * Returns the minimal value observed for the measure since the device was started.
      *
-     * @return a floating point number corresponding to the minimal value observed for the measure since
-     * the device was started
+     * @return double : a floating point number corresponding to the minimal value observed for the
+     * measure since the device was started
      *
      * On failure, throws an exception or returns Y_LOWESTVALUE_INVALID.
      */
@@ -5508,15 +5921,16 @@ class YSensor extends YFunction
             }
         }
         $res = $this->_lowestValue * $this->_iresol;
-        return round($res) / $this->_iresol;
+        $res = round($res) / $this->_iresol;
+        return $res;
     }
 
     /**
      * Changes the recorded maximal value observed.
      *
-     * @param newval : a floating point number corresponding to the recorded maximal value observed
+     * @param double $newval : a floating point number corresponding to the recorded maximal value observed
      *
-     * @return YAPI_SUCCESS if the call succeeds.
+     * @return integer : YAPI_SUCCESS if the call succeeds.
      *
      * On failure, throws an exception or returns a negative error code.
      */
@@ -5529,8 +5943,8 @@ class YSensor extends YFunction
     /**
      * Returns the maximal value observed for the measure since the device was started.
      *
-     * @return a floating point number corresponding to the maximal value observed for the measure since
-     * the device was started
+     * @return double : a floating point number corresponding to the maximal value observed for the
+     * measure since the device was started
      *
      * On failure, throws an exception or returns Y_HIGHESTVALUE_INVALID.
      */
@@ -5543,45 +5957,50 @@ class YSensor extends YFunction
             }
         }
         $res = $this->_highestValue * $this->_iresol;
-        return round($res) / $this->_iresol;
+        $res = round($res) / $this->_iresol;
+        return $res;
     }
 
     /**
      * Returns the uncalibrated, unrounded raw value returned by the sensor, in the specified unit, as a
      * floating point number.
      *
-     * @return a floating point number corresponding to the uncalibrated, unrounded raw value returned by
-     * the sensor, in the specified unit, as a floating point number
+     * @return double : a floating point number corresponding to the uncalibrated, unrounded raw value
+     * returned by the sensor, in the specified unit, as a floating point number
      *
      * On failure, throws an exception or returns Y_CURRENTRAWVALUE_INVALID.
      */
     public function get_currentRawValue()
     {
+        // $res                    is a double;
         if ($this->_cacheExpiration <= YAPI::GetTickCount()) {
             if ($this->load(YAPI::$defaultCacheValidity) != YAPI_SUCCESS) {
                 return Y_CURRENTRAWVALUE_INVALID;
             }
         }
-        return $this->_currentRawValue;
+        $res = $this->_currentRawValue;
+        return $res;
     }
 
     /**
      * Returns the datalogger recording frequency for this function, or "OFF"
      * when measures are not stored in the data logger flash memory.
      *
-     * @return a string corresponding to the datalogger recording frequency for this function, or "OFF"
+     * @return string : a string corresponding to the datalogger recording frequency for this function, or "OFF"
      *         when measures are not stored in the data logger flash memory
      *
      * On failure, throws an exception or returns Y_LOGFREQUENCY_INVALID.
      */
     public function get_logFrequency()
     {
+        // $res                    is a string;
         if ($this->_cacheExpiration <= YAPI::GetTickCount()) {
             if ($this->load(YAPI::$defaultCacheValidity) != YAPI_SUCCESS) {
                 return Y_LOGFREQUENCY_INVALID;
             }
         }
-        return $this->_logFrequency;
+        $res = $this->_logFrequency;
+        return $res;
     }
 
     /**
@@ -5591,9 +6010,9 @@ class YSensor extends YFunction
      * hour (eg. "4/h"). To disable recording for this function, use
      * the value "OFF".
      *
-     * @param newval : a string corresponding to the datalogger recording frequency for this function
+     * @param string $newval : a string corresponding to the datalogger recording frequency for this function
      *
-     * @return YAPI_SUCCESS if the call succeeds.
+     * @return integer : YAPI_SUCCESS if the call succeeds.
      *
      * On failure, throws an exception or returns a negative error code.
      */
@@ -5607,19 +6026,21 @@ class YSensor extends YFunction
      * Returns the timed value notification frequency, or "OFF" if timed
      * value notifications are disabled for this function.
      *
-     * @return a string corresponding to the timed value notification frequency, or "OFF" if timed
+     * @return string : a string corresponding to the timed value notification frequency, or "OFF" if timed
      *         value notifications are disabled for this function
      *
      * On failure, throws an exception or returns Y_REPORTFREQUENCY_INVALID.
      */
     public function get_reportFrequency()
     {
+        // $res                    is a string;
         if ($this->_cacheExpiration <= YAPI::GetTickCount()) {
             if ($this->load(YAPI::$defaultCacheValidity) != YAPI_SUCCESS) {
                 return Y_REPORTFREQUENCY_INVALID;
             }
         }
-        return $this->_reportFrequency;
+        $res = $this->_reportFrequency;
+        return $res;
     }
 
     /**
@@ -5629,9 +6050,9 @@ class YSensor extends YFunction
      * hour (eg. "4/h"). To disable timed value notifications for this
      * function, use the value "OFF".
      *
-     * @param newval : a string corresponding to the timed value notification frequency for this function
+     * @param string $newval : a string corresponding to the timed value notification frequency for this function
      *
-     * @return YAPI_SUCCESS if the call succeeds.
+     * @return integer : YAPI_SUCCESS if the call succeeds.
      *
      * On failure, throws an exception or returns a negative error code.
      */
@@ -5641,14 +6062,53 @@ class YSensor extends YFunction
         return $this->_setAttr("reportFrequency",$rest_val);
     }
 
+    /**
+     * Returns the measuring mode used for the advertised value pushed to the parent hub.
+     *
+     * @return integer : a value among Y_ADVMODE_IMMEDIATE, Y_ADVMODE_PERIOD_AVG, Y_ADVMODE_PERIOD_MIN and
+     * Y_ADVMODE_PERIOD_MAX corresponding to the measuring mode used for the advertised value pushed to the parent hub
+     *
+     * On failure, throws an exception or returns Y_ADVMODE_INVALID.
+     */
+    public function get_advMode()
+    {
+        // $res                    is a enumADVERTISINGMODE;
+        if ($this->_cacheExpiration <= YAPI::GetTickCount()) {
+            if ($this->load(YAPI::$defaultCacheValidity) != YAPI_SUCCESS) {
+                return Y_ADVMODE_INVALID;
+            }
+        }
+        $res = $this->_advMode;
+        return $res;
+    }
+
+    /**
+     * Changes the measuring mode used for the advertised value pushed to the parent hub.
+     *
+     * @param integer $newval : a value among Y_ADVMODE_IMMEDIATE, Y_ADVMODE_PERIOD_AVG,
+     * Y_ADVMODE_PERIOD_MIN and Y_ADVMODE_PERIOD_MAX corresponding to the measuring mode used for the
+     * advertised value pushed to the parent hub
+     *
+     * @return integer : YAPI_SUCCESS if the call succeeds.
+     *
+     * On failure, throws an exception or returns a negative error code.
+     */
+    public function set_advMode($newval)
+    {
+        $rest_val = strval($newval);
+        return $this->_setAttr("advMode",$rest_val);
+    }
+
     public function get_calibrationParam()
     {
+        // $res                    is a string;
         if ($this->_cacheExpiration <= YAPI::GetTickCount()) {
             if ($this->load(YAPI::$defaultCacheValidity) != YAPI_SUCCESS) {
                 return Y_CALIBRATIONPARAM_INVALID;
             }
         }
-        return $this->_calibrationParam;
+        $res = $this->_calibrationParam;
+        return $res;
     }
 
     public function set_calibrationParam($newval)
@@ -5661,9 +6121,9 @@ class YSensor extends YFunction
      * Changes the resolution of the measured physical values. The resolution corresponds to the numerical precision
      * when displaying value. It does not change the precision of the measure itself.
      *
-     * @param newval : a floating point number corresponding to the resolution of the measured physical values
+     * @param double $newval : a floating point number corresponding to the resolution of the measured physical values
      *
-     * @return YAPI_SUCCESS if the call succeeds.
+     * @return integer : YAPI_SUCCESS if the call succeeds.
      *
      * On failure, throws an exception or returns a negative error code.
      */
@@ -5677,38 +6137,42 @@ class YSensor extends YFunction
      * Returns the resolution of the measured values. The resolution corresponds to the numerical precision
      * of the measures, which is not always the same as the actual precision of the sensor.
      *
-     * @return a floating point number corresponding to the resolution of the measured values
+     * @return double : a floating point number corresponding to the resolution of the measured values
      *
      * On failure, throws an exception or returns Y_RESOLUTION_INVALID.
      */
     public function get_resolution()
     {
+        // $res                    is a double;
         if ($this->_cacheExpiration <= YAPI::GetTickCount()) {
             if ($this->load(YAPI::$defaultCacheValidity) != YAPI_SUCCESS) {
                 return Y_RESOLUTION_INVALID;
             }
         }
-        return $this->_resolution;
+        $res = $this->_resolution;
+        return $res;
     }
 
     /**
      * Returns the sensor health state code, which is zero when there is an up-to-date measure
      * available or a positive code if the sensor is not able to provide a measure right now.
      *
-     * @return an integer corresponding to the sensor health state code, which is zero when there is an
-     * up-to-date measure
+     * @return integer : an integer corresponding to the sensor health state code, which is zero when
+     * there is an up-to-date measure
      *         available or a positive code if the sensor is not able to provide a measure right now
      *
      * On failure, throws an exception or returns Y_SENSORSTATE_INVALID.
      */
     public function get_sensorState()
     {
+        // $res                    is a int;
         if ($this->_cacheExpiration <= YAPI::GetTickCount()) {
             if ($this->load(YAPI::$defaultCacheValidity) != YAPI_SUCCESS) {
                 return Y_SENSORSTATE_INVALID;
             }
         }
-        return $this->_sensorState;
+        $res = $this->_sensorState;
+        return $res;
     }
 
     /**
@@ -5730,9 +6194,13 @@ class YSensor extends YFunction
      * found is returned. The search is performed first by hardware name,
      * then by logical name.
      *
-     * @param func : a string that uniquely characterizes the sensor
+     * If a call to this object's is_online() method returns FALSE although
+     * you are certain that the matching device is plugged, make sure that you did
+     * call registerHub() at application initialization time.
      *
-     * @return a YSensor object allowing you to drive the sensor.
+     * @param string $func : a string that uniquely characterizes the sensor
+     *
+     * @return YSensor : a YSensor object allowing you to drive the sensor.
      */
     public static function FindSensor($func)
     {
@@ -5773,19 +6241,23 @@ class YSensor extends YFunction
             return 0;
         }
         if (Ystrpos($this->_calibrationParam,',') >= 0) {
+            // Plain text format
             $iCalib = YAPI::_decodeFloats($this->_calibrationParam);
             $this->_caltyp = intVal(($iCalib[0]) / (1000));
             if ($this->_caltyp > 0) {
                 if ($this->_caltyp < YOCTO_CALIB_TYPE_OFS) {
+                    // Unknown calibration type: calibrated value will be provided by the device
                     $this->_caltyp = -1;
                     return 0;
                 }
                 $this->_calhdl = YAPI::_getCalibrationHandler($this->_caltyp);
                 if (!(!is_null($this->_calhdl))) {
+                    // Unknown calibration type: calibrated value will be provided by the device
                     $this->_caltyp = -1;
                     return 0;
                 }
             }
+            // New 32bit text format
             $this->_isScal = true;
             $this->_isScal32 = true;
             $this->_offset = 0;
@@ -5810,11 +6282,14 @@ class YSensor extends YFunction
                 $position = $position + 2;
             }
         } else {
+            // Recorder-encoded format, including encoding
             $iCalib = YAPI::_decodeWords($this->_calibrationParam);
+            // In case of unknown format, calibrated value will be provided by the device
             if (sizeof($iCalib) < 2) {
                 $this->_caltyp = -1;
                 return 0;
             }
+            // Save variable format (scale for scalar, or decimal exponent)
             $this->_isScal = ($iCalib[1] > 0);
             if ($this->_isScal) {
                 $this->_offset = $iCalib[0];
@@ -5833,12 +6308,14 @@ class YSensor extends YFunction
                     $position = $position - 1;
                 }
             }
+            // Shortcut when there is no calibration parameter
             if (sizeof($iCalib) == 2) {
                 $this->_caltyp = 0;
                 return 0;
             }
             $this->_caltyp = $iCalib[2];
             $this->_calhdl = YAPI::_getCalibrationHandler($this->_caltyp);
+            // parse calibration points
             if ($this->_caltyp <= 10) {
                 $maxpos = $this->_caltyp;
             } else {
@@ -5884,7 +6361,7 @@ class YSensor extends YFunction
      * a current measure to transmit. No exception is raised if there is an error
      * while trying to contact the device hosting $THEFUNCTION$.
      *
-     * @return true if the sensor can provide an up-to-date measure, and false otherwise
+     * @return boolean : true if the sensor can provide an up-to-date measure, and false otherwise
      */
     public function isSensorReady()
     {
@@ -5898,16 +6375,40 @@ class YSensor extends YFunction
     }
 
     /**
+     * Returns the YDatalogger object of the device hosting the sensor. This method returns an object of
+     * class YDatalogger that can control global parameters of the data logger. The returned object
+     * should not be freed.
+     *
+     * @return YDataLogger : an YDataLogger object or null on error.
+     */
+    public function get_dataLogger()
+    {
+        // $logger                 is a YDataLogger;
+        // $modu                   is a YModule;
+        // $serial                 is a str;
+        // $hwid                   is a str;
+
+        $modu = $this->get_module();
+        $serial = $modu->get_serialNumber();
+        if ($serial == YAPI_INVALID_STRING) {
+            return null;
+        }
+        $hwid = $serial . '.dataLogger';
+        $logger  = YDataLogger::FindDataLogger($hwid);
+        return $logger;
+    }
+
+    /**
      * Starts the data logger on the device. Note that the data logger
      * will only save the measures on this sensor if the logFrequency
      * is not set to "OFF".
      *
-     * @return YAPI_SUCCESS if the call succeeds.
+     * @return integer : YAPI_SUCCESS if the call succeeds.
      */
     public function startDataLogger()
     {
         // $res                    is a bin;
-        // may throw an exception
+
         $res = $this->_download('api/dataLogger/recording?recording=1');
         if (!(strlen($res)>0)) return $this->_throw( YAPI_IO_ERROR, 'unable to start datalogger',YAPI_IO_ERROR);
         return YAPI_SUCCESS;
@@ -5916,12 +6417,12 @@ class YSensor extends YFunction
     /**
      * Stops the datalogger on the device.
      *
-     * @return YAPI_SUCCESS if the call succeeds.
+     * @return integer : YAPI_SUCCESS if the call succeeds.
      */
     public function stopDataLogger()
     {
         // $res                    is a bin;
-        // may throw an exception
+
         $res = $this->_download('api/dataLogger/recording?recording=0');
         if (!(strlen($res)>0)) return $this->_throw( YAPI_IO_ERROR, 'unable to stop datalogger',YAPI_IO_ERROR);
         return YAPI_SUCCESS;
@@ -5940,16 +6441,16 @@ class YSensor extends YFunction
      * as DataSet objects are not supported by firmwares older than
      * version 13000.
      *
-     * @param startTime : the start of the desired measure time interval,
+     * @param integer $startTime : the start of the desired measure time interval,
      *         as a Unix timestamp, i.e. the number of seconds since
      *         January 1, 1970 UTC. The special value 0 can be used
      *         to include any meaasure, without initial limit.
-     * @param endTime : the end of the desired measure time interval,
+     * @param integer $endTime : the end of the desired measure time interval,
      *         as a Unix timestamp, i.e. the number of seconds since
      *         January 1, 1970 UTC. The special value 0 can be used
      *         to include any meaasure, without ending limit.
      *
-     * @return an instance of YDataSet, providing access to historical
+     * @return YDataSet : an instance of YDataSet, providing access to historical
      *         data. Past measures can be loaded progressively
      *         using methods from the YDataSet object.
      */
@@ -5957,7 +6458,7 @@ class YSensor extends YFunction
     {
         // $funcid                 is a str;
         // $funit                  is a str;
-        // may throw an exception
+
         $funcid = $this->get_functionId();
         $funit = $this->get_unit();
         return new YDataSet($this, $funcid, $funit, $startTime, $endTime);
@@ -5969,7 +6470,8 @@ class YSensor extends YFunction
      * This provides control over the time when the callback is triggered. For good responsiveness, remember to call
      * one of these two functions periodically. To unregister a callback, pass a null pointer as argument.
      *
-     * @param callback : the callback function to call, or a null pointer. The callback function should take two
+     * @param function $callback : the callback function to call, or a null pointer. The callback function
+     * should take two
      *         arguments: the function object of which the value has changed, and an YMeasure object describing
      *         the new advertised value.
      * @noreturn
@@ -6008,33 +6510,35 @@ class YSensor extends YFunction
      * For more information on advanced capabilities to refine the calibration of
      * sensors, please contact support@yoctopuce.com.
      *
-     * @param rawValues : array of floating point numbers, corresponding to the raw
+     * @param double[] $rawValues : array of floating point numbers, corresponding to the raw
      *         values returned by the sensor for the correction points.
-     * @param refValues : array of floating point numbers, corresponding to the corrected
+     * @param double[] $refValues : array of floating point numbers, corresponding to the corrected
      *         values for the correction points.
      *
-     * @return YAPI_SUCCESS if the call succeeds.
+     * @return integer : YAPI_SUCCESS if the call succeeds.
      *
      * On failure, throws an exception or returns a negative error code.
      */
     public function calibrateFromPoints($rawValues,$refValues)
     {
         // $rest_val               is a str;
-        // may throw an exception
+        // $res                    is a int;
+
         $rest_val = $this->_encodeCalibrationPoints($rawValues, $refValues);
-        return $this->_setAttr('calibrationParam', $rest_val);
+        $res = $this->_setAttr('calibrationParam', $rest_val);
+        return $res;
     }
 
     /**
      * Retrieves error correction data points previously entered using the method
      * calibrateFromPoints.
      *
-     * @param rawValues : array of floating point numbers, that will be filled by the
+     * @param double[] $rawValues : array of floating point numbers, that will be filled by the
      *         function with the raw sensor values for the correction points.
-     * @param refValues : array of floating point numbers, that will be filled by the
+     * @param double[] $refValues : array of floating point numbers, that will be filled by the
      *         function with the desired values for the correction points.
      *
-     * @return YAPI_SUCCESS if the call succeeds.
+     * @return integer : YAPI_SUCCESS if the call succeeds.
      *
      * On failure, throws an exception or returns a negative error code.
      */
@@ -6091,6 +6595,7 @@ class YSensor extends YFunction
             return '0';
         }
         if ($this->_isScal32) {
+            // 32-bit fixed-point encoding
             $res = sprintf('%d', YOCTO_CALIB_TYPE_OFS);
             $idx = 0;
             while ($idx < $npt) {
@@ -6099,6 +6604,7 @@ class YSensor extends YFunction
             }
         } else {
             if ($this->_isScal) {
+                // 16-bit fixed-point encoding
                 $res = sprintf('%d', $npt);
                 $idx = 0;
                 while ($idx < $npt) {
@@ -6108,6 +6614,7 @@ class YSensor extends YFunction
                     $idx = $idx + 1;
                 }
             } else {
+                // 16-bit floating-point decimal encoding
                 $res = sprintf('%d', 10 + $npt);
                 $idx = 0;
                 while ($idx < $npt) {
@@ -6160,7 +6667,9 @@ class YSensor extends YFunction
             $startTime = $endTime;
         }
         if ($report[0] == 2) {
+            // 32bit timed report format
             if (sizeof($report) <= 5) {
+                // sub-second report, 1-4 bytes
                 $poww = 1;
                 $avgRaw = 0;
                 $byteVal = 0;
@@ -6183,6 +6692,7 @@ class YSensor extends YFunction
                 $minVal = $avgVal;
                 $maxVal = $avgVal;
             } else {
+                // averaged report: avg,avg-min,max-avg
                 $sublen = 1 + (($report[1]) & (3));
                 $poww = 1;
                 $avgRaw = 0;
@@ -6232,7 +6742,9 @@ class YSensor extends YFunction
                 }
             }
         } else {
+            // 16bit timed report format
             if ($report[0] == 0) {
+                // sub-second report, 1-4 bytes
                 $poww = 1;
                 $avgRaw = 0;
                 $byteVal = 0;
@@ -6254,6 +6766,7 @@ class YSensor extends YFunction
                 $minVal = $avgVal;
                 $maxVal = $avgVal;
             } else {
+                // averaged report 2+4+2 bytes
                 $minRaw = $report[1] + 0x100 * $report[2];
                 $maxRaw = $report[3] + 0x100 * $report[4];
                 $avgRaw = $report[5] + 0x100 * $report[6] + 0x10000 * $report[7];
@@ -6338,6 +6851,12 @@ class YSensor extends YFunction
     public function setReportFrequency($newval)
     { return $this->set_reportFrequency($newval); }
 
+    public function advMode()
+    { return $this->get_advMode(); }
+
+    public function setAdvMode($newval)
+    { return $this->set_advMode($newval); }
+
     public function calibrationParam()
     { return $this->get_calibrationParam(); }
 
@@ -6356,7 +6875,7 @@ class YSensor extends YFunction
     /**
      * Continues the enumeration of sensors started using yFirstSensor().
      *
-     * @return a pointer to a YSensor object, corresponding to
+     * @return YSensor : a pointer to a YSensor object, corresponding to
      *         a sensor currently online, or a null pointer
      *         if there are no more sensors to enumerate.
      */
@@ -6365,7 +6884,7 @@ class YSensor extends YFunction
         if($resolve->errorType != YAPI_SUCCESS) return null;
         $next_hwid = YAPI::getNextHardwareId($this->_className, $resolve->result);
         if($next_hwid == null) return null;
-        return yFindSensor($next_hwid);
+        return self::FindSensor($next_hwid);
     }
 
     /**
@@ -6373,7 +6892,7 @@ class YSensor extends YFunction
      * Use the method YSensor.nextSensor() to iterate on
      * next sensors.
      *
-     * @return a pointer to a YSensor object, corresponding to
+     * @return YSensor : a pointer to a YSensor object, corresponding to
      *         the first sensor currently online, or a null pointer
      *         if there are none.
      */
@@ -6456,7 +6975,7 @@ class YModule extends YFunction
     /**
      * Returns the number of functions (beside the "module" interface) available on the module.
      *
-     * @return the number of functions on the module
+     * @return integer : the number of functions on the module
      *
      * On failure, throws an exception or returns a negative error code.
      */
@@ -6469,10 +6988,10 @@ class YModule extends YFunction
     /**
      * Retrieves the hardware identifier of the <i>n</i>th function on the module.
      *
-     * @param functionIndex : the index of the function for which the information is desired, starting at
-     * 0 for the first function.
+     * @param integer $functionIndex : the index of the function for which the information is desired,
+     * starting at 0 for the first function.
      *
-     * @return a string corresponding to the unambiguous hardware identifier of the requested module function
+     * @return string : a string corresponding to the unambiguous hardware identifier of the requested module function
      *
      * On failure, throws an exception or returns an empty string.
      */
@@ -6485,10 +7004,10 @@ class YModule extends YFunction
     /**
      * Retrieves the type of the <i>n</i>th function on the module.
      *
-     * @param functionIndex : the index of the function for which the information is desired, starting at
-     * 0 for the first function.
+     * @param integer $functionIndex : the index of the function for which the information is desired,
+     * starting at 0 for the first function.
      *
-     * @return a the type of the function
+     * @return string : a string corresponding to the type of the function
      *
      * On failure, throws an exception or returns an empty string.
      */
@@ -6500,11 +7019,12 @@ class YModule extends YFunction
 
     /**
      * Retrieves the base type of the <i>n</i>th function on the module.
+     * For instance, the base type of all measuring functions is "Sensor".
      *
-     * @param functionIndex : the index of the function for which the information is desired, starting at
-     * 0 for the first function.
+     * @param integer $functionIndex : the index of the function for which the information is desired,
+     * starting at 0 for the first function.
      *
-     * @return a the base type of the function
+     * @return string : a string corresponding to the base type of the function
      *
      * On failure, throws an exception or returns an empty string.
      */
@@ -6518,10 +7038,10 @@ class YModule extends YFunction
     /**
      * Retrieves the logical name of the <i>n</i>th function on the module.
      *
-     * @param functionIndex : the index of the function for which the information is desired, starting at
-     * 0 for the first function.
+     * @param integer $functionIndex : the index of the function for which the information is desired,
+     * starting at 0 for the first function.
      *
-     * @return a string corresponding to the logical name of the requested module function
+     * @return string : a string corresponding to the logical name of the requested module function
      *
      * On failure, throws an exception or returns an empty string.
      */
@@ -6537,11 +7057,11 @@ class YModule extends YFunction
     /**
      * Retrieves the advertised value of the <i>n</i>th function on the module.
      *
-     * @param functionIndex : the index of the function for which the information is desired, starting at
-     * 0 for the first function.
+     * @param integer $functionIndex : the index of the function for which the information is desired,
+     * starting at 0 for the first function.
      *
-     * @return a short string (up to 6 characters) corresponding to the advertised value of the requested
-     * module function
+     * @return string : a short string (up to 6 characters) corresponding to the advertised value of the
+     * requested module function
      *
      * On failure, throws an exception or returns an empty string.
      */
@@ -6579,7 +7099,7 @@ class YModule extends YFunction
      * This method only makes sense when called for a YoctoHub/VirtualHub.
      * Otherwise, an empty array will be returned.
      *
-     * @return an array of strings containing the sub modules.
+     * @return string[] : an array of strings containing the sub modules.
      */
     public function get_subDevices()
     {
@@ -6592,7 +7112,7 @@ class YModule extends YFunction
      * If the module is connected by USB, or if the module is the root YoctoHub, an
      * empty string is returned.
      *
-     * @return a string with the serial number of the YoctoHub or an empty string
+     * @return string : a string with the serial number of the YoctoHub or an empty string
      */
     public function get_parentHub()
     {
@@ -6607,7 +7127,7 @@ class YModule extends YFunction
      * Returns the URL used to access the module. If the module is connected by USB, the
      * string 'usb' is returned.
      *
-     * @return a string with the URL of the module.
+     * @return string : a string with the URL of the module.
      */
     public function get_url()
     {
@@ -6666,12 +7186,13 @@ class YModule extends YFunction
     /**
      * Returns the commercial name of the module, as set by the factory.
      *
-     * @return a string corresponding to the commercial name of the module, as set by the factory
+     * @return string : a string corresponding to the commercial name of the module, as set by the factory
      *
      * On failure, throws an exception or returns Y_PRODUCTNAME_INVALID.
      */
     public function get_productName()
     {
+        // $res                    is a string;
         // $dev                    is a YDevice;
         if ($this->_cacheExpiration == 0) {
             $dev = $this->_getDev();
@@ -6682,18 +7203,20 @@ class YModule extends YFunction
                 return Y_PRODUCTNAME_INVALID;
             }
         }
-        return $this->_productName;
+        $res = $this->_productName;
+        return $res;
     }
 
     /**
      * Returns the serial number of the module, as set by the factory.
      *
-     * @return a string corresponding to the serial number of the module, as set by the factory
+     * @return string : a string corresponding to the serial number of the module, as set by the factory
      *
      * On failure, throws an exception or returns Y_SERIALNUMBER_INVALID.
      */
     public function get_serialNumber()
     {
+        // $res                    is a string;
         // $dev                    is a YDevice;
         if ($this->_cacheExpiration == 0) {
             $dev = $this->_getDev();
@@ -6704,18 +7227,20 @@ class YModule extends YFunction
                 return Y_SERIALNUMBER_INVALID;
             }
         }
-        return $this->_serialNumber;
+        $res = $this->_serialNumber;
+        return $res;
     }
 
     /**
      * Returns the USB device identifier of the module.
      *
-     * @return an integer corresponding to the USB device identifier of the module
+     * @return integer : an integer corresponding to the USB device identifier of the module
      *
      * On failure, throws an exception or returns Y_PRODUCTID_INVALID.
      */
     public function get_productId()
     {
+        // $res                    is a int;
         // $dev                    is a YDevice;
         if ($this->_cacheExpiration == 0) {
             $dev = $this->_getDev();
@@ -6726,59 +7251,66 @@ class YModule extends YFunction
                 return Y_PRODUCTID_INVALID;
             }
         }
-        return $this->_productId;
+        $res = $this->_productId;
+        return $res;
     }
 
     /**
      * Returns the hardware release version of the module.
      *
-     * @return an integer corresponding to the hardware release version of the module
+     * @return integer : an integer corresponding to the hardware release version of the module
      *
      * On failure, throws an exception or returns Y_PRODUCTRELEASE_INVALID.
      */
     public function get_productRelease()
     {
+        // $res                    is a int;
         if ($this->_cacheExpiration <= YAPI::GetTickCount()) {
             if ($this->load(YAPI::$defaultCacheValidity) != YAPI_SUCCESS) {
                 return Y_PRODUCTRELEASE_INVALID;
             }
         }
-        return $this->_productRelease;
+        $res = $this->_productRelease;
+        return $res;
     }
 
     /**
      * Returns the version of the firmware embedded in the module.
      *
-     * @return a string corresponding to the version of the firmware embedded in the module
+     * @return string : a string corresponding to the version of the firmware embedded in the module
      *
      * On failure, throws an exception or returns Y_FIRMWARERELEASE_INVALID.
      */
     public function get_firmwareRelease()
     {
+        // $res                    is a string;
         if ($this->_cacheExpiration <= YAPI::GetTickCount()) {
             if ($this->load(YAPI::$defaultCacheValidity) != YAPI_SUCCESS) {
                 return Y_FIRMWARERELEASE_INVALID;
             }
         }
-        return $this->_firmwareRelease;
+        $res = $this->_firmwareRelease;
+        return $res;
     }
 
     /**
      * Returns the current state of persistent module settings.
      *
-     * @return a value among Y_PERSISTENTSETTINGS_LOADED, Y_PERSISTENTSETTINGS_SAVED and
+     * @return integer : a value among Y_PERSISTENTSETTINGS_LOADED, Y_PERSISTENTSETTINGS_SAVED and
      * Y_PERSISTENTSETTINGS_MODIFIED corresponding to the current state of persistent module settings
      *
      * On failure, throws an exception or returns Y_PERSISTENTSETTINGS_INVALID.
      */
     public function get_persistentSettings()
     {
+        // $res                    is a enumFLASHSETTINGS;
         if ($this->_cacheExpiration <= YAPI::GetTickCount()) {
             if ($this->load(YAPI::$defaultCacheValidity) != YAPI_SUCCESS) {
                 return Y_PERSISTENTSETTINGS_INVALID;
             }
         }
-        return $this->_persistentSettings;
+        $res = $this->_persistentSettings;
+        return $res;
     }
 
     public function set_persistentSettings($newval)
@@ -6790,18 +7322,20 @@ class YModule extends YFunction
     /**
      * Returns the luminosity of the  module informative leds (from 0 to 100).
      *
-     * @return an integer corresponding to the luminosity of the  module informative leds (from 0 to 100)
+     * @return integer : an integer corresponding to the luminosity of the  module informative leds (from 0 to 100)
      *
      * On failure, throws an exception or returns Y_LUMINOSITY_INVALID.
      */
     public function get_luminosity()
     {
+        // $res                    is a int;
         if ($this->_cacheExpiration <= YAPI::GetTickCount()) {
             if ($this->load(YAPI::$defaultCacheValidity) != YAPI_SUCCESS) {
                 return Y_LUMINOSITY_INVALID;
             }
         }
-        return $this->_luminosity;
+        $res = $this->_luminosity;
+        return $res;
     }
 
     /**
@@ -6810,9 +7344,9 @@ class YModule extends YFunction
      * Remember to call the saveToFlash() method of the module if the
      * modification must be kept.
      *
-     * @param newval : an integer corresponding to the luminosity of the module informative leds
+     * @param integer $newval : an integer corresponding to the luminosity of the module informative leds
      *
-     * @return YAPI_SUCCESS if the call succeeds.
+     * @return integer : YAPI_SUCCESS if the call succeeds.
      *
      * On failure, throws an exception or returns a negative error code.
      */
@@ -6825,12 +7359,13 @@ class YModule extends YFunction
     /**
      * Returns the state of the localization beacon.
      *
-     * @return either Y_BEACON_OFF or Y_BEACON_ON, according to the state of the localization beacon
+     * @return integer : either Y_BEACON_OFF or Y_BEACON_ON, according to the state of the localization beacon
      *
      * On failure, throws an exception or returns Y_BEACON_INVALID.
      */
     public function get_beacon()
     {
+        // $res                    is a enumONOFF;
         // $dev                    is a YDevice;
         if ($this->_cacheExpiration <= YAPI::GetTickCount()) {
             $dev = $this->_getDev();
@@ -6841,15 +7376,16 @@ class YModule extends YFunction
                 return Y_BEACON_INVALID;
             }
         }
-        return $this->_beacon;
+        $res = $this->_beacon;
+        return $res;
     }
 
     /**
      * Turns on or off the module localization beacon.
      *
-     * @param newval : either Y_BEACON_OFF or Y_BEACON_ON
+     * @param integer $newval : either Y_BEACON_OFF or Y_BEACON_ON
      *
-     * @return YAPI_SUCCESS if the call succeeds.
+     * @return integer : YAPI_SUCCESS if the call succeeds.
      *
      * On failure, throws an exception or returns a negative error code.
      */
@@ -6862,54 +7398,61 @@ class YModule extends YFunction
     /**
      * Returns the number of milliseconds spent since the module was powered on.
      *
-     * @return an integer corresponding to the number of milliseconds spent since the module was powered on
+     * @return integer : an integer corresponding to the number of milliseconds spent since the module was powered on
      *
      * On failure, throws an exception or returns Y_UPTIME_INVALID.
      */
     public function get_upTime()
     {
+        // $res                    is a long;
         if ($this->_cacheExpiration <= YAPI::GetTickCount()) {
             if ($this->load(YAPI::$defaultCacheValidity) != YAPI_SUCCESS) {
                 return Y_UPTIME_INVALID;
             }
         }
-        return $this->_upTime;
+        $res = $this->_upTime;
+        return $res;
     }
 
     /**
      * Returns the current consumed by the module on the USB bus, in milli-amps.
      *
-     * @return an integer corresponding to the current consumed by the module on the USB bus, in milli-amps
+     * @return integer : an integer corresponding to the current consumed by the module on the USB bus, in milli-amps
      *
      * On failure, throws an exception or returns Y_USBCURRENT_INVALID.
      */
     public function get_usbCurrent()
     {
+        // $res                    is a int;
         if ($this->_cacheExpiration <= YAPI::GetTickCount()) {
             if ($this->load(YAPI::$defaultCacheValidity) != YAPI_SUCCESS) {
                 return Y_USBCURRENT_INVALID;
             }
         }
-        return $this->_usbCurrent;
+        $res = $this->_usbCurrent;
+        return $res;
     }
 
     /**
      * Returns the remaining number of seconds before the module restarts, or zero when no
      * reboot has been scheduled.
      *
-     * @return an integer corresponding to the remaining number of seconds before the module restarts, or zero when no
+     * @return integer : an integer corresponding to the remaining number of seconds before the module
+     * restarts, or zero when no
      *         reboot has been scheduled
      *
      * On failure, throws an exception or returns Y_REBOOTCOUNTDOWN_INVALID.
      */
     public function get_rebootCountdown()
     {
+        // $res                    is a int;
         if ($this->_cacheExpiration <= YAPI::GetTickCount()) {
             if ($this->load(YAPI::$defaultCacheValidity) != YAPI_SUCCESS) {
                 return Y_REBOOTCOUNTDOWN_INVALID;
             }
         }
-        return $this->_rebootCountdown;
+        $res = $this->_rebootCountdown;
+        return $res;
     }
 
     public function set_rebootCountdown($newval)
@@ -6922,27 +7465,30 @@ class YModule extends YFunction
      * Returns the value previously stored in this attribute.
      * On startup and after a device reboot, the value is always reset to zero.
      *
-     * @return an integer corresponding to the value previously stored in this attribute
+     * @return integer : an integer corresponding to the value previously stored in this attribute
      *
      * On failure, throws an exception or returns Y_USERVAR_INVALID.
      */
     public function get_userVar()
     {
+        // $res                    is a int;
         if ($this->_cacheExpiration <= YAPI::GetTickCount()) {
             if ($this->load(YAPI::$defaultCacheValidity) != YAPI_SUCCESS) {
                 return Y_USERVAR_INVALID;
             }
         }
-        return $this->_userVar;
+        $res = $this->_userVar;
+        return $res;
     }
 
     /**
-     * Returns the value previously stored in this attribute.
+     * Stores a 32 bit value in the device RAM. This attribute is at programmer disposal,
+     * should he need to store a state variable.
      * On startup and after a device reboot, the value is always reset to zero.
      *
-     * @param newval : an integer
+     * @param integer $newval : an integer
      *
-     * @return YAPI_SUCCESS if the call succeeds.
+     * @return integer : YAPI_SUCCESS if the call succeeds.
      *
      * On failure, throws an exception or returns a negative error code.
      */
@@ -6963,10 +7509,14 @@ class YModule extends YFunction
      * found is returned. The search is performed first by hardware name,
      * then by logical name.
      *
-     * @param func : a string containing either the serial number or
+     * If a call to this object's is_online() method returns FALSE although
+     * you are certain that the device is plugged, make sure that you did
+     * call registerHub() at application initialization time.
+     *
+     * @param string $func : a string containing either the serial number or
      *         the logical name of the desired module
      *
-     * @return a YModule object allowing you to drive the module
+     * @return YModule : a YModule object allowing you to drive the module
      *         or get additional information on the module.
      */
     public static function FindModule($func)
@@ -6985,7 +7535,7 @@ class YModule extends YFunction
      * Warning: the number of allowed save operations during a module life is
      * limited (about 100000 cycles). Do not call this function within a loop.
      *
-     * @return YAPI_SUCCESS when the call succeeds.
+     * @return integer : YAPI_SUCCESS when the call succeeds.
      *
      * On failure, throws an exception or returns a negative error code.
      */
@@ -6998,7 +7548,7 @@ class YModule extends YFunction
      * Reloads the settings stored in the nonvolatile memory, as
      * when the module is powered on.
      *
-     * @return YAPI_SUCCESS when the call succeeds.
+     * @return integer : YAPI_SUCCESS when the call succeeds.
      *
      * On failure, throws an exception or returns a negative error code.
      */
@@ -7010,9 +7560,9 @@ class YModule extends YFunction
     /**
      * Schedules a simple module reboot after the given number of seconds.
      *
-     * @param secBeforeReboot : number of seconds before rebooting
+     * @param integer $secBeforeReboot : number of seconds before rebooting
      *
-     * @return YAPI_SUCCESS when the call succeeds.
+     * @return integer : YAPI_SUCCESS when the call succeeds.
      *
      * On failure, throws an exception or returns a negative error code.
      */
@@ -7024,9 +7574,9 @@ class YModule extends YFunction
     /**
      * Schedules a module reboot into special firmware update mode.
      *
-     * @param secBeforeReboot : number of seconds before rebooting
+     * @param integer $secBeforeReboot : number of seconds before rebooting
      *
-     * @return YAPI_SUCCESS when the call succeeds.
+     * @return integer : YAPI_SUCCESS when the call succeeds.
      *
      * On failure, throws an exception or returns a negative error code.
      */
@@ -7043,10 +7593,10 @@ class YModule extends YFunction
      * appropriate .byn file. If the parameter onlynew is true, the function discards firmwares that are older or
      * equal to the installed firmware.
      *
-     * @param path : the path of a byn file or a directory that contains byn files
-     * @param onlynew : returns only files that are strictly newer
+     * @param string $path : the path of a byn file or a directory that contains byn files
+     * @param boolean $onlynew : returns only files that are strictly newer
      *
-     * @return the path of the byn file to use or a empty string if no byn files matches the requirement
+     * @return string : the path of the byn file to use or a empty string if no byn files matches the requirement
      *
      * On failure, throws an exception or returns a string that start with "error:".
      */
@@ -7073,16 +7623,16 @@ class YModule extends YFunction
      * Prepares a firmware update of the module. This method returns a YFirmwareUpdate object which
      * handles the firmware update process.
      *
-     * @param path : the path of the .byn file to use.
-     * @param force : true to force the firmware update even if some prerequisites appear not to be met
+     * @param string $path : the path of the .byn file to use.
+     * @param boolean $force : true to force the firmware update even if some prerequisites appear not to be met
      *
-     * @return a YFirmwareUpdate object or NULL on error.
+     * @return YFirmwareUpdate : a YFirmwareUpdate object or NULL on error.
      */
     public function updateFirmwareEx($path,$force)
     {
         // $serial                 is a str;
         // $settings               is a bin;
-        // may throw an exception
+
         $serial = $this->get_serialNumber();
         $settings = $this->get_allSettings();
         if (strlen($settings) == 0) {
@@ -7096,9 +7646,9 @@ class YModule extends YFunction
      * Prepares a firmware update of the module. This method returns a YFirmwareUpdate object which
      * handles the firmware update process.
      *
-     * @param path : the path of the .byn file to use.
+     * @param string $path : the path of the .byn file to use.
      *
-     * @return a YFirmwareUpdate object or NULL on error.
+     * @return YFirmwareUpdate : a YFirmwareUpdate object or NULL on error.
      */
     public function updateFirmware($path)
     {
@@ -7109,7 +7659,7 @@ class YModule extends YFunction
      * Returns all the settings and uploaded files of the module. Useful to backup all the
      * logical names, calibrations parameters, and uploaded files of a device.
      *
-     * @return a binary buffer with all the settings.
+     * @return string : a binary buffer with all the settings.
      *
      * On failure, throws an exception or returns an binary object of size 0.
      */
@@ -7130,7 +7680,7 @@ class YModule extends YFunction
         // $ext_settings           is a str;
         $filelist = Array();    // strArr;
         $templist = Array();    // strArr;
-        // may throw an exception
+
         $settings = $this->_download('api.json');
         if (strlen($settings) == 0) {
             return $settings;
@@ -7186,7 +7736,7 @@ class YModule extends YFunction
         // $ofs                    is a int;
         // $size                   is a int;
         $url = 'api/' . $funcId . '.json?command=Z';
-        // may throw an exception
+
         $this->_download($url);
         // add records in growing resistance value
         $values = $this->_json_get_array($jsonExtra);
@@ -7226,9 +7776,9 @@ class YModule extends YFunction
      * Remember to call the saveToFlash() method of the module if the
      * modifications must be kept.
      *
-     * @param settings : a binary buffer with all the settings.
+     * @param string $settings : a binary buffer with all the settings.
      *
-     * @return YAPI_SUCCESS when the call succeeds.
+     * @return integer : YAPI_SUCCESS when the call succeeds.
      *
      * On failure, throws an exception or returns a negative error code.
      */
@@ -7275,16 +7825,16 @@ class YModule extends YFunction
      * Tests if the device includes a specific function. This method takes a function identifier
      * and returns a boolean.
      *
-     * @param funcId : the requested function identifier
+     * @param string $funcId : the requested function identifier
      *
-     * @return true if the device has the function identifier
+     * @return boolean : true if the device has the function identifier
      */
     public function hasFunction($funcId)
     {
         // $count                  is a int;
         // $i                      is a int;
         // $fid                    is a str;
-        // may throw an exception
+
         $count  = $this->functionCount();
         $i = 0;
         while ($i < $count) {
@@ -7300,9 +7850,9 @@ class YModule extends YFunction
     /**
      * Retrieve all hardware identifier that match the type passed in argument.
      *
-     * @param funType : The type of function (Relay, LightSensor, Voltage,...)
+     * @param string $funType : The type of function (Relay, LightSensor, Voltage,...)
      *
-     * @return an array of strings.
+     * @return string[] : an array of strings.
      */
     public function get_functionIds($funType)
     {
@@ -7310,7 +7860,7 @@ class YModule extends YFunction
         // $i                      is a int;
         // $ftype                  is a str;
         $res = Array();         // strArr;
-        // may throw an exception
+
         $count = $this->functionCount();
         $i = 0;
         while ($i < $count) {
@@ -7408,9 +7958,11 @@ class YModule extends YFunction
         $paramScale = $funScale;
         $paramOffset = $funOffset;
         if ($funVer < 3) {
+            // Read the effective device scale if available
             if ($funVer == 2) {
                 $words = YAPI::_decodeWords($currentFuncValue);
                 if (($words[0] == 1366) && ($words[1] == 12500)) {
+                    // Yocto-3D RefFrame used a special encoding
                     $funScale = 1;
                     $funOffset = 0;
                 } else {
@@ -7428,9 +7980,11 @@ class YModule extends YFunction
         while(sizeof($calibData) > 0) { array_pop($calibData); };
         $calibType = 0;
         if ($paramVer < 3) {
+            // Handle old 16 bit parameters formats
             if ($paramVer == 2) {
                 $words = YAPI::_decodeWords($param);
                 if (($words[0] == 1366) && ($words[1] == 12500)) {
+                    // Yocto-3D RefFrame used a special encoding
                     $paramScale = 1;
                     $paramOffset = 0;
                 } else {
@@ -7483,13 +8037,16 @@ class YModule extends YFunction
             $i = 0;
             while ($i < sizeof($calibData)) {
                 if ($paramScale > 0) {
+                    // scalar decoding
                     $calibData[$i] = ($calibData[$i] - $paramOffset) / $paramScale;
                 } else {
+                    // floating-point decoding
                     $calibData[$i] = YAPI::_decimalToDouble(round($calibData[$i]));
                 }
                 $i = $i + 1;
             }
         } else {
+            // Handle latest 32bit parameter format
             $iCalib = YAPI::_decodeFloats($param);
             $calibType = round($iCalib[0] / 1000.0);
             if ($calibType >= 30) {
@@ -7502,6 +8059,7 @@ class YModule extends YFunction
             }
         }
         if ($funVer >= 3) {
+            // Encode parameters in new format
             if (sizeof($calibData) == 0) {
                 $param = '0,';
             } else {
@@ -7520,6 +8078,7 @@ class YModule extends YFunction
             }
         } else {
             if ($funVer >= 1) {
+                // Encode parameters for older devices
                 $nPoints = intVal((sizeof($calibData)) / (2));
                 $param = $nPoints;
                 $i = 0;
@@ -7533,6 +8092,7 @@ class YModule extends YFunction
                     $i = $i + 1;
                 }
             } else {
+                // Initial V0 encoding used for old Yocto-Light
                 if (sizeof($calibData) == 4) {
                     $param = round(1000 * ($calibData[3] - $calibData[1]) / $calibData[2] - $calibData[0]);
                 }
@@ -7546,9 +8106,9 @@ class YModule extends YFunction
      * of a module from a backup.Remember to call the saveToFlash() method of the module if the
      * modifications must be kept.
      *
-     * @param settings : a binary buffer with all the settings.
+     * @param string $settings : a binary buffer with all the settings.
      *
-     * @return YAPI_SUCCESS when the call succeeds.
+     * @return integer : YAPI_SUCCESS when the call succeeds.
      *
      * On failure, throws an exception or returns a negative error code.
      */
@@ -7597,6 +8157,7 @@ class YModule extends YFunction
         $old_dslist = $this->_json_get_array($old_json_flat);
         foreach($old_dslist as $each) {
             $each_str = $this->_json_get_string($each);
+            // split json path and attr
             $leng = strlen($each_str);
             $eqpos = Ystrpos($each_str,'=');
             if (($eqpos < 0) || ($leng == 0)) {
@@ -7610,12 +8171,14 @@ class YModule extends YFunction
             $old_jpath_len[] = strlen($jpath);
             $old_val_arr[] = $value;
         }
-        // may throw an exception
+
         $actualSettings = $this->_download('api.json');
         $actualSettings = $this->_flattenJsonStruct($actualSettings);
         $new_dslist = $this->_json_get_array($actualSettings);
         foreach($new_dslist as $each) {
+            // remove quotes
             $each_str = $this->_json_get_string($each);
+            // split json path and attr
             $leng = strlen($each_str);
             $eqpos = Ystrpos($each_str,'=');
             if (($eqpos < 0) || ($leng == 0)) {
@@ -7820,15 +8383,16 @@ class YModule extends YFunction
         foreach($restoreLast as $each) {
             $this->_download($each);
         }
+        $this->clearCache();
         return YAPI_SUCCESS;
     }
 
     /**
      * Downloads the specified built-in file and returns a binary buffer with its content.
      *
-     * @param pathname : name of the new file to load
+     * @param string $pathname : name of the new file to load
      *
-     * @return a binary buffer with the file content
+     * @return string : a binary buffer with the file content
      *
      * On failure, throws an exception or returns  YAPI_INVALID_STRING.
      */
@@ -7841,7 +8405,7 @@ class YModule extends YFunction
      * Returns the icon of the module. The icon is a PNG image and does not
      * exceeds 1536 bytes.
      *
-     * @return a binary buffer with module icon, in png format.
+     * @return string : a binary buffer with module icon, in png format.
      *         On failure, throws an exception or returns  YAPI_INVALID_STRING.
      */
     public function get_icon2d()
@@ -7853,13 +8417,13 @@ class YModule extends YFunction
      * Returns a string with last logs of the module. This method return only
      * logs that are still in the module.
      *
-     * @return a string with last logs of the module.
+     * @return string : a string with last logs of the module.
      *         On failure, throws an exception or returns  YAPI_INVALID_STRING.
      */
     public function get_lastLogs()
     {
         // $content                is a bin;
-        // may throw an exception
+
         $content = $this->_download('logs.txt');
         return $content;
     }
@@ -7869,9 +8433,9 @@ class YModule extends YFunction
      * particular to trace the execution of HTTP callbacks. If a newline
      * is desired after the message, it must be included in the string.
      *
-     * @param text : the string to append to the logs.
+     * @param string $text : the string to append to the logs.
      *
-     * @return YAPI_SUCCESS if the call succeeds.
+     * @return integer : YAPI_SUCCESS if the call succeeds.
      *
      * On failure, throws an exception or returns a negative error code.
      */
@@ -7943,7 +8507,7 @@ class YModule extends YFunction
     /**
      * Continues the module enumeration started using yFirstModule().
      *
-     * @return a pointer to a YModule object, corresponding to
+     * @return YModule : a pointer to a YModule object, corresponding to
      *         the next module found, or a null pointer
      *         if there are no more modules to enumerate.
      */
@@ -7952,7 +8516,7 @@ class YModule extends YFunction
         if($resolve->errorType != YAPI_SUCCESS) return null;
         $next_hwid = YAPI::getNextHardwareId($this->_className, $resolve->result);
         if($next_hwid == null) return null;
-        return yFindModule($next_hwid);
+        return self::FindModule($next_hwid);
     }
 
     /**
@@ -7960,7 +8524,7 @@ class YModule extends YFunction
      * Use the method YModule.nextModule() to iterate on the
      * next modules.
      *
-     * @return a pointer to a YModule object, corresponding to
+     * @return YModule : a pointer to a YModule object, corresponding to
      *         the first module currently online, or a null pointer
      *         if there are none.
      */
@@ -7972,6 +8536,41 @@ class YModule extends YFunction
 
     //--- (end of generated code: YModule implementation)
 };
+
+/**
+ * Enables the HTTP callback cache. When enabled, this cache reduces the quantity of data sent to the
+ * PHP script by 50% to 70%. To enable this cache, the method ySetHTTPCallbackCacheDir()
+ * must be called before any call to yRegisterHub(). This method takes in parameter the path
+ * of the directory used for saving data between each callback. This folder must exist and the
+ * PHP script needs to have write access to it. It is recommended to use a folder that is not published
+ * on the Web server since the library will save some data of Yoctopuce devices into this folder.
+ *
+ * Note: This feature is supported by YoctoHub and VirtualHub since version 27750.
+ *
+ * @param str_directory : the path of the folder that will be used as cache.
+ *
+ * @return nothing.
+ *
+ * On failure, throws an exception.
+ */
+function ySetHTTPCallbackCacheDir($str_directory)
+{
+    YAPI::SetHTTPCallbackCacheDir($str_directory);
+}
+
+/**
+ * Disables the HTTP callback cache. This method disables the HTTP callback cache, and
+ * can additionally cleanup the cache directory.
+ *
+ * @param bool_removeFiles : True to clear the content of the cache.
+ *
+ * @return nothing.
+ */
+function yClearHTTPCallbackCacheDir($bool_removeFiles)
+{
+    YAPI::ClearHTTPCallbackCacheDir($bool_removeFiles);
+}
+
 
 /**
  * Returns the version identifier for the Yoctopuce library in use.
@@ -7987,7 +8586,7 @@ class YModule extends YFunction
  * number is greater or equal. The build number is not relevant
  * with respect to the library compatibility.
  *
- * @return a character string describing the library version.
+ * @return string : a character string describing the library version.
  */
 function yGetAPIVersion()
 {
@@ -8004,13 +8603,13 @@ function yGetAPIVersion()
  * you must explicitly use yRegisterHub() to point the API to the
  * VirtualHub on which your devices are connected before trying to access them.
  *
- * @param mode : an integer corresponding to the type of automatic
+ * @param integer $mode : an integer corresponding to the type of automatic
  *         device detection to use. Possible values are
  *         Y_DETECT_NONE, Y_DETECT_USB, Y_DETECT_NET,
  *         and Y_DETECT_ALL.
- * @param errmsg : a string passed by reference to receive any error message.
+ * @param errmsg {YErrorMsg} : a string passed by reference to receive any error message.
  *
- * @return YAPI_SUCCESS when the call succeeds.
+ * @return integer : YAPI_SUCCESS when the call succeeds.
  *
  * On failure, throws an exception or returns a negative error code.
  */
@@ -8091,11 +8690,11 @@ function yEnableExceptions()
  *
  * You can call <i>RegisterHub</i> several times to connect to several machines.
  *
- * @param url : a string containing either "usb","callback" or the
+ * @param string $url : a string containing either "usb","callback" or the
  *         root URL of the hub to monitor
- * @param errmsg : a string passed by reference to receive any error message.
+ * @param errmsg {YErrorMsg} : a string passed by reference to receive any error message.
  *
- * @return YAPI_SUCCESS when the call succeeds.
+ * @return integer : YAPI_SUCCESS when the call succeeds.
  *
  * On failure, throws an exception or returns a negative error code.
  */
@@ -8104,7 +8703,21 @@ function yRegisterHub($url,&$errmsg="")
     return YAPI::RegisterHub($url,$errmsg);
 }
 
-
+/**
+ * Fault-tolerant alternative to RegisterHub(). This function has the same
+ * purpose and same arguments as RegisterHub(), but does not trigger
+ * an error when the selected hub is not available at the time of the function call.
+ * This makes it possible to register a network hub independently of the current
+ * connectivity, and to try to contact it only when a device is actively needed.
+ *
+ * @param string $url : a string containing either "usb","callback" or the
+ *         root URL of the hub to monitor
+ * @param errmsg {YErrorMsg} : a string passed by reference to receive any error message.
+ *
+ * @return integer : YAPI_SUCCESS when the call succeeds.
+ *
+ * On failure, throws an exception or returns a negative error code.
+ */
 function yPreregisterHub($url,&$errmsg="")
 {
     return YAPI::PreregisterHub($url,$errmsg);
@@ -8114,7 +8727,7 @@ function yPreregisterHub($url,&$errmsg="")
  * Setup the Yoctopuce library to no more use modules connected on a previously
  * registered machine with RegisterHub.
  *
- * @param url : a string containing either "usb" or the
+ * @param string $url : a string containing either "usb" or the
  *         root URL of the hub to monitor
  */
 function yUnregisterHub($url)
@@ -8122,19 +8735,18 @@ function yUnregisterHub($url)
     YAPI::UnregisterHub($url);
 }
 
-
 /**
  * Test if the hub is reachable. This method do not register the hub, it only test if the
  * hub is usable. The url parameter follow the same convention as the RegisterHub
  * method. This method is useful to verify the authentication parameters for a hub. It
  * is possible to force this method to return after mstimeout milliseconds.
  *
- * @param url : a string containing either "usb","callback" or the
+ * @param string $url : a string containing either "usb","callback" or the
  *         root URL of the hub to monitor
- * @param mstimeout : the number of millisecond available to test the connection.
- * @param errmsg : a string passed by reference to receive any error message.
+ * @param integer $mstimeout : the number of millisecond available to test the connection.
+ * @param errmsg {YErrorMsg} : a string passed by reference to receive any error message.
  *
- * @return YAPI_SUCCESS when the call succeeds.
+ * @return integer : YAPI_SUCCESS when the call succeeds.
  *
  * On failure returns a negative error code.
  */
@@ -8143,6 +8755,23 @@ function yTestHub($url, $mstimeout, &$errmsg="")
     return YAPI::TestHub($url, $mstimeout, $errmsg);
 }
 
+/**
+ * Trigger an HTTP request to another server, and forward the HTTP callback data
+ * previously received from a YoctoHub. This function only works after a successful
+ * call to yRegisterHub("callback")
+ *
+ * @param url : a string containing the URL of the server to which the HTTP callback
+ *              should be forwarded
+ * @param errmsg : a string passed by reference to receive any error message.
+ *
+ * @return YAPI_SUCCESS when the call succeeds.
+ *
+ * On failure, throws an exception or returns a negative error code.
+ */
+function yForwardHTTPCallback($url,&$errmsg="")
+{
+    return YAPI::ForwardHTTPCallback($url,$errmsg);
+}
 
 /**
  * Triggers a (re)detection of connected Yoctopuce modules.
@@ -8153,9 +8782,9 @@ function yTestHub($url, $mstimeout, &$errmsg="")
  * This function can be called as frequently as desired to refresh the device list
  * and to make the application aware of hot-plug events.
  *
- * @param errmsg : a string passed by reference to receive any error message.
+ * @param errmsg {YErrorMsg} : a string passed by reference to receive any error message.
  *
- * @return YAPI_SUCCESS when the call succeeds.
+ * @return integer : YAPI_SUCCESS when the call succeeds.
  *
  * On failure, throws an exception or returns a negative error code.
  */
@@ -8175,9 +8804,9 @@ function yUpdateDeviceList(&$errmsg="")
  * This function may signal an error in case there is a communication problem
  * while contacting a module.
  *
- * @param errmsg : a string passed by reference to receive any error message.
+ * @param errmsg {YErrorMsg} : a string passed by reference to receive any error message.
  *
- * @return YAPI_SUCCESS when the call succeeds.
+ * @return integer : YAPI_SUCCESS when the call succeeds.
  *
  * On failure, throws an exception or returns a negative error code.
  */
@@ -8197,11 +8826,11 @@ function yHandleEvents(&$errmsg="")
  * This function may signal an error in case there is a communication problem
  * while contacting a module.
  *
- * @param ms_duration : an integer corresponding to the duration of the pause,
+ * @param integer $ms_duration : an integer corresponding to the duration of the pause,
  *         in milliseconds.
- * @param errmsg : a string passed by reference to receive any error message.
+ * @param errmsg {YErrorMsg} : a string passed by reference to receive any error message.
  *
- * @return YAPI_SUCCESS when the call succeeds.
+ * @return integer : YAPI_SUCCESS when the call succeeds.
  *
  * On failure, throws an exception or returns a negative error code.
  */
@@ -8215,7 +8844,7 @@ function ySleep($ms_duration, &$errmsg="")
  * This counter can be used to compute delays in relation with
  * Yoctopuce devices, which also uses the millisecond as timebase.
  *
- * @return a long integer corresponding to the millisecond counter.
+ * @return integer : a long integer corresponding to the millisecond counter.
  */
 function yGetTickCount()
 {
@@ -8229,9 +8858,9 @@ function yGetTickCount()
  * If you try to configure a logical name with an incorrect string,
  * the invalid characters are ignored.
  *
- * @param name : a string containing the name to check.
+ * @param string $name : a string containing the name to check.
  *
- * @return true if the name is valid, false otherwise.
+ * @return boolean : true if the name is valid, false otherwise.
  */
 function yCheckLogicalName($name)
 {
@@ -8243,7 +8872,7 @@ function yCheckLogicalName($name)
  * a device is plugged. This callback will be invoked while yUpdateDeviceList
  * is running. You will have to call this function on a regular basis.
  *
- * @param arrivalCallback : a procedure taking a YModule parameter, or null
+ * @param function $arrivalCallback : a procedure taking a YModule parameter, or null
  *         to unregister a previously registered  callback.
  */
 function yRegisterDeviceArrivalCallback($arrivalCallback)
@@ -8264,7 +8893,7 @@ function yRegisterDeviceChangeCallback($changeCallback)
  * a device is unplugged. This callback will be invoked while yUpdateDeviceList
  * is running. You will have to call this function on a regular basis.
  *
- * @param removalCallback : a procedure taking a YModule parameter, or null
+ * @param function $removalCallback : a procedure taking a YModule parameter, or null
  *         to unregister a previously registered  callback.
  */
 function yRegisterDeviceRemovalCallback($removalCallback)
@@ -8293,7 +8922,53 @@ for($yHdlrIdx = 1; $yHdlrIdx <= 20; $yHdlrIdx++) {
 }
 yRegisterCalibrationHandler(YOCTO_CALIB_TYPE_OFS, 'yLinearCalibrationHandler');
 
-//--- (generated code: Sensor functions)
+
+//--- (generated code: YFunction functions)
+
+/**
+ * Retrieves a function for a given identifier.
+ * The identifier can be specified using several formats:
+ * <ul>
+ * <li>FunctionLogicalName</li>
+ * <li>ModuleSerialNumber.FunctionIdentifier</li>
+ * <li>ModuleSerialNumber.FunctionLogicalName</li>
+ * <li>ModuleLogicalName.FunctionIdentifier</li>
+ * <li>ModuleLogicalName.FunctionLogicalName</li>
+ * </ul>
+ *
+ * This function does not require that the function is online at the time
+ * it is invoked. The returned object is nevertheless valid.
+ * Use the method YFunction.isOnline() to test if the function is
+ * indeed online at a given time. In case of ambiguity when looking for
+ * a function by logical name, no error is notified: the first instance
+ * found is returned. The search is performed first by hardware name,
+ * then by logical name.
+ *
+ * If a call to this object's is_online() method returns FALSE although
+ * you are certain that the matching device is plugged, make sure that you did
+ * call registerHub() at application initialization time.
+ *
+ * @param string $func : a string that uniquely characterizes the function
+ *
+ * @return YFunction : a YFunction object allowing you to drive the function.
+ */
+function yFindFunction($func)
+{
+    return YFunction::FindFunction($func);
+}
+
+/**
+ * comment from .yc definition
+ */
+function yFirstFunction()
+{
+    return YFunction::FirstFunction();
+}
+
+//--- (end of generated code: YFunction functions)
+
+
+//--- (generated code: YSensor functions)
 
 /**
  * Retrieves a sensor for a given identifier.
@@ -8314,9 +8989,13 @@ yRegisterCalibrationHandler(YOCTO_CALIB_TYPE_OFS, 'yLinearCalibrationHandler');
  * found is returned. The search is performed first by hardware name,
  * then by logical name.
  *
- * @param func : a string that uniquely characterizes the sensor
+ * If a call to this object's is_online() method returns FALSE although
+ * you are certain that the matching device is plugged, make sure that you did
+ * call registerHub() at application initialization time.
  *
- * @return a YSensor object allowing you to drive the sensor.
+ * @param string $func : a string that uniquely characterizes the sensor
+ *
+ * @return YSensor : a YSensor object allowing you to drive the sensor.
  */
 function yFindSensor($func)
 {
@@ -8328,7 +9007,7 @@ function yFindSensor($func)
  * Use the method YSensor.nextSensor() to iterate on
  * next sensors.
  *
- * @return a pointer to a YSensor object, corresponding to
+ * @return YSensor : a pointer to a YSensor object, corresponding to
  *         the first sensor currently online, or a null pointer
  *         if there are none.
  */
@@ -8337,9 +9016,9 @@ function yFirstSensor()
     return YSensor::FirstSensor();
 }
 
-//--- (end of generated code: Sensor functions)
+//--- (end of generated code: YSensor functions)
 
-//--- (generated code: Module functions)
+//--- (generated code: YModule functions)
 
 /**
  * Allows you to find a module from its serial number or from its logical name.
@@ -8352,10 +9031,14 @@ function yFirstSensor()
  * found is returned. The search is performed first by hardware name,
  * then by logical name.
  *
- * @param func : a string containing either the serial number or
+ * If a call to this object's is_online() method returns FALSE although
+ * you are certain that the device is plugged, make sure that you did
+ * call registerHub() at application initialization time.
+ *
+ * @param string $func : a string containing either the serial number or
  *         the logical name of the desired module
  *
- * @return a YModule object allowing you to drive the module
+ * @return YModule : a YModule object allowing you to drive the module
  *         or get additional information on the module.
  */
 function yFindModule($func)
@@ -8368,7 +9051,7 @@ function yFindModule($func)
  * Use the method YModule.nextModule() to iterate on the
  * next modules.
  *
- * @return a pointer to a YModule object, corresponding to
+ * @return YModule : a pointer to a YModule object, corresponding to
  *         the first module currently online, or a null pointer
  *         if there are none.
  */
@@ -8377,7 +9060,800 @@ function yFirstModule()
     return YModule::FirstModule();
 }
 
-//--- (end of generated code: Module functions)
+//--- (end of generated code: YModule functions)
 
 
+//--- (generated code: YDataLogger definitions)
+if(!defined('Y_RECORDING_OFF'))              define('Y_RECORDING_OFF',             0);
+if(!defined('Y_RECORDING_ON'))               define('Y_RECORDING_ON',              1);
+if(!defined('Y_RECORDING_PENDING'))          define('Y_RECORDING_PENDING',         2);
+if(!defined('Y_RECORDING_INVALID'))          define('Y_RECORDING_INVALID',         -1);
+if(!defined('Y_AUTOSTART_OFF'))              define('Y_AUTOSTART_OFF',             0);
+if(!defined('Y_AUTOSTART_ON'))               define('Y_AUTOSTART_ON',              1);
+if(!defined('Y_AUTOSTART_INVALID'))          define('Y_AUTOSTART_INVALID',         -1);
+if(!defined('Y_BEACONDRIVEN_OFF'))           define('Y_BEACONDRIVEN_OFF',          0);
+if(!defined('Y_BEACONDRIVEN_ON'))            define('Y_BEACONDRIVEN_ON',           1);
+if(!defined('Y_BEACONDRIVEN_INVALID'))       define('Y_BEACONDRIVEN_INVALID',      -1);
+if(!defined('Y_CLEARHISTORY_FALSE'))         define('Y_CLEARHISTORY_FALSE',        0);
+if(!defined('Y_CLEARHISTORY_TRUE'))          define('Y_CLEARHISTORY_TRUE',         1);
+if(!defined('Y_CLEARHISTORY_INVALID'))       define('Y_CLEARHISTORY_INVALID',      -1);
+if(!defined('Y_CURRENTRUNINDEX_INVALID'))    define('Y_CURRENTRUNINDEX_INVALID',   YAPI_INVALID_UINT);
+if(!defined('Y_TIMEUTC_INVALID'))            define('Y_TIMEUTC_INVALID',           YAPI_INVALID_LONG);
+//--- (end of generated code: YDataLogger definitions)
+
+/**
+ * YOldDataStream Class: Sequence of measured data, stored by the data logger
+ *
+ * A data stream is a small collection of consecutive measures for a set
+ * of sensors. A few properties are available directly from the object itself
+ * (they are preloaded at instantiation time), while most other properties and
+ * the actual data are loaded on demand when accessed for the first time.
+ */
+class YOldDataStream extends YDataStream
+{
+    const DATA_INVALID = Y_INVALID_FLOAT;
+
+    protected $_dataLogger = null;
+    protected $_interval   = 0;
+    protected $_timeStamp  = 0;
+
+    function __construct($parent, $run, $stamp, $utc=-1, $itv=0)
+    {
+        parent::__construct($parent);
+
+        $this->_dataLogger = $parent;
+        $this->_runNo      = $run;
+        $this->_timeStamp  = $stamp;
+        $this->_utcStamp   = $utc;
+        $this->_interval   = $itv;
+        $this->_samplesPerHour = ($itv == 0 ? 3600 : 3600 / $this->_interval);
+        $this->_isClosed   = 1;
+        $this->_minVal     = Y_INVALID_FLOAT;
+        $this->_avgVal     = Y_INVALID_FLOAT;
+        $this->_maxVal     = Y_INVALID_FLOAT;
+    }
+
+    // Internal function to preload all values into object
+    //
+    public function loadStream()
+    {
+        $coldiv = null;
+        $coltyp = null;
+        $colscl = null;
+        $colofs = null;
+        $calhdl = null;
+        $caltyp = null;
+        $calpar = null;
+        $calraw = null;
+        $calref = null;
+
+        $loadval = null;
+        $retcode = $this->_dataLogger->getData($this->_runNo, $this->_timeStamp, $loadval);
+        if($retcode != YAPI_SUCCESS) {
+            return $retcode;
+        }
+        if(isset($loadval['time']))     $this->_timeStamp = $loadval['time'];
+        if(isset($loadval['UTC']))      $this->_utcStamp  = $loadval['UTC'];
+        if(isset($loadval['interval'])) $this->_interval  = $loadval['interval'];
+        if(isset($loadval['nRows']))    $this->_nRows     = $loadval['nRows'];
+        if(isset($loadval['keys'])) {
+            $this->_columnNames = $loadval['keys'];
+            if($this->_nCols == 0) {
+                $this->_nCols = sizeof($this->_columnNames);
+            } else if($this->_nCols != sizeof($this->_columnNames)) {
+                $this->_nCols = 0;
+                return YAPI_IO_ERROR;
+            }
+        }
+        if(isset($loadval['div'])) {
+            $coldiv = $loadval['div'];
+            if($this->_nCols == 0) {
+                $this->_nCols = sizeof($coldiv);
+            } else if($this->_nCols != sizeof($coldiv)) {
+                $this->_nCols = 0;
+                return YAPI_IO_ERROR;
+            }
+        }
+        if(isset($loadval['type'])) {
+            $coltyp = $loadval['type'];
+            if($this->_nCols == 0) {
+                $this->_nCols = sizeof($coltyp);
+            } else if($this->_nCols != sizeof($coltyp)) {
+                $this->_nCols = 0;
+                return YAPI_IO_ERROR;
+            }
+        }
+        if(isset($loadval['scal'])) {
+            $colscl = $loadval['scal'];
+            $colofs = Array();
+            if($this->_nCols == 0) {
+                $this->_nCols = sizeof($colscl);
+            } else if($this->_nCols != sizeof($colscl)) {
+                $this->_nCols = 0;
+                return YAPI_IO_ERROR;
+            }
+            for($i = 0; $i < sizeof($colscl); $i++) {
+                $colscl[$i] /= 65536.0;
+                $colofs[$i] = ($coltyp[$i] != 0 ? -32767 : 0);
+            }
+        } else {
+            $colscl = Array();
+            $colofs = Array();
+            for($i = 0; $i < sizeof($coldiv); $i++) {
+                $colscl[$i] = 1.0 / $coldiv[$i];
+                $colofs[$i] = ($coltyp[$i] != 0 ? -32767 : 0);
+            }
+        }
+        if(isset($loadval['cal'])) {
+            $calhdl = Array();
+            $caltyp = Array();
+            $calpar = Array();
+            $calraw = Array();
+            $calref = Array();
+            for($c = 0; $c < $this->_nCols; $c++) {
+                $params = $loadval['cal'][$c];
+                if(!$params) continue;
+                $params = explode(',', $params);
+                if(sizeof($params) < 11) continue;
+                $calhdl[$c] = YAPI::getCalibrationHandler($params[0]);
+                if(is_null($calhdl[$c])) continue;
+                $caltyp[$c] = intVal($params[0]);
+                $calpar[$c] = Array();
+                $calraw[$c] = Array();
+                $calref[$c] = Array();
+                for($i = 1; $i < sizeof($params); $i += 2) {
+                    $calpar[$c][$i-1] = intVal($params[$i]);
+                    $calpar[$c][$i]   = intVal($params[$i+1]);
+                    if($caltyp[$c] <= 10) {
+                        $calraw[$c][$i>>1] = ($calpar[$c][$i-1] + $colofs[$c]) / $coldiv[$c];
+                        $calref[$c][$i>>1] = ($calpar[$c][$i]   + $colofs[$c]) / $coldiv[$c];
+                    } else {
+                        $calraw[$c][$i>>1] = YAPI::decimalToDouble($calpar[$c][$i-1]);
+                        $calref[$c][$i>>1] = YAPI::decimalToDouble($calpar[$c][$i]);
+                    }
+                }
+            }
+        }
+        if(isset($loadval['data'])) {
+            if($this->_nCols == 0 || is_null($coldiv) || is_null($coltyp)) {
+                return YAPI_IO_ERROR;
+            }
+            if(is_string($loadval['data'])) {
+                $data = $loadval['data'];
+                $datalen = strlen($data);
+                $udata = Array();
+                for($i = 0; $i < $datalen;) {
+                    if($data[$i] >= 'a') {
+                        $srcpos = sizeof($udata)-1-(ord($data[$i++])-97);
+                        if($srcpos < 0) return YAPI_IO_ERROR;
+                        $udata[] = $udata[$srcpos];
+                    } else {
+                        if($i+2 > $datalen) return YAPI_IO_ERROR;
+                        $val = ord($data[$i++]) - 48;
+                        $val += (ord($data[$i++]) - 48) << 5;
+                        if($data[$i] == 'z') $data[$i] = '\\';
+                        $val += (ord($data[$i++]) - 48) << 10;
+                        $udata[] = $val;
+                    }
+                }
+                $loadval['data'] = $udata;
+            }
+            $this->_values = Array();
+            $dat = Array();
+            $c = 0;
+            foreach($loadval['data'] as $val) {
+                if($coltyp[$c] < 2) {
+                    $val = ($val + $colofs[$c]) * $colscl[$c];
+                } else {
+                    $val = YAPI::decimalToDouble($val-32767);
+                }
+                if(!is_null($calhdl) && isset($calhdl[$c])) {
+                    // use post-calibration function
+                    if($caltyp[$c] <= 10) {
+                        $val = call_user_func($calhdl[$c], ($val+$colofs[$c])/$coldiv[$c], $caltyp[$c],
+                                              $calpar[$c], $calraw[$c], $calref[$c]);
+                    } else if($caltyp[$c] > 20) {
+                        $val = call_user_func($calhdl[$c], $val, $caltyp[$c],
+                                              $calpar[$c], $calraw[$c], $calref[$c]);
+                    }
+                }
+                $dat[] = $val;
+                if(++$c == $this->_nCols) {
+                    $this->_values[] = $dat;
+                    $dat = Array();
+                    $c = 0;
+                }
+            }
+        }
+        return YAPI_SUCCESS;
+    }
+
+    /**
+     * Returns the relative start time of the data stream, measured in seconds.
+     * For recent firmwares, the value is relative to the present time,
+     * which means the value is always negative.
+     * If the device uses a firmware older than version 13000, value is
+     * relative to the start of the time the device was powered on, and
+     * is always positive.
+     * If you need an absolute UTC timestamp, use get_startTimeUTC().
+     *
+     * @return an unsigned number corresponding to the number of seconds
+     *         between the start of the run and the beginning of this data
+     *         stream.
+     */
+    public function get_startTime()
+    {
+        return $this->_timeStamp;
+    }
+    public function startTime()
+    {
+        return $this->_timeStamp;
+    }
+
+    /**
+     * Returns the number of seconds elapsed between  two consecutive
+     * rows of this data stream. By default, the data logger records one row
+     * per second, but there might be alternative streams at lower resolution
+     * created by summarizing the original stream for archiving purposes.
+     *
+     * This method does not cause any access to the device, as the value
+     * is preloaded in the object at instantiation time.
+     *
+     * @return an unsigned number corresponding to a number of seconds.
+     */
+    public function get_dataSamplesInterval()
+    {
+        if($this->_interval == 0) $this->loadStream();
+        return $this->_interval;
+    }
+    public function dataSamplesInterval()
+    {
+        if($this->_interval == 0) $this->loadStream();
+        return $this->_interval;
+    }
+};
+
+
+//--- (generated code: YDataLogger declaration)
+/**
+ * YDataLogger Class: DataLogger function interface
+ *
+ * Yoctopuce sensors include a non-volatile memory capable of storing ongoing measured
+ * data automatically, without requiring a permanent connection to a computer.
+ * The DataLogger function controls the global parameters of the internal data
+ * logger.
+ */
+class YDataLogger extends YFunction
+{
+    const CURRENTRUNINDEX_INVALID        = YAPI_INVALID_UINT;
+    const TIMEUTC_INVALID                = YAPI_INVALID_LONG;
+    const RECORDING_OFF                  = 0;
+    const RECORDING_ON                   = 1;
+    const RECORDING_PENDING              = 2;
+    const RECORDING_INVALID              = -1;
+    const AUTOSTART_OFF                  = 0;
+    const AUTOSTART_ON                   = 1;
+    const AUTOSTART_INVALID              = -1;
+    const BEACONDRIVEN_OFF               = 0;
+    const BEACONDRIVEN_ON                = 1;
+    const BEACONDRIVEN_INVALID           = -1;
+    const CLEARHISTORY_FALSE             = 0;
+    const CLEARHISTORY_TRUE              = 1;
+    const CLEARHISTORY_INVALID           = -1;
+    //--- (end of generated code: YDataLogger declaration)
+
+    //--- (generated code: YDataLogger attributes)
+    protected $_currentRunIndex          = Y_CURRENTRUNINDEX_INVALID;    // UInt31
+    protected $_timeUTC                  = Y_TIMEUTC_INVALID;            // UTCTime
+    protected $_recording                = Y_RECORDING_INVALID;          // OffOnPending
+    protected $_autoStart                = Y_AUTOSTART_INVALID;          // OnOff
+    protected $_beaconDriven             = Y_BEACONDRIVEN_INVALID;       // OnOff
+    protected $_clearHistory             = Y_CLEARHISTORY_INVALID;       // Bool
+    //--- (end of generated code: YDataLogger attributes)
+    protected $dataLoggerURL = null;
+
+    function __construct($str_func)
+    {
+        //--- (generated code: YDataLogger constructor)
+        parent::__construct($str_func);
+        $this->_className = 'DataLogger';
+
+        //--- (end of generated code: YDataLogger constructor)
+    }
+
+    // Internal function to retrieve datalogger memory
+    //
+    public function getData($runIdx, $timeIdx, &$loadval)
+    {
+        if(is_null($this->dataLoggerURL)) {
+            $this->dataLoggerURL = "/logger.json";
+        }
+
+        // get the device serial number
+        $devid = $this->module()->get_serialNumber();
+        if($devid == Y_SERIALNUMBER_INVALID) {
+            return $this->get_errorType();
+        }
+        $httpreq = "GET ".$this->dataLoggerURL;
+        if(!is_null($timeIdx)) {
+            $httpreq .= "?run={$runIdx}&time={$timeIdx}";
+        }
+        $yreq = YAPI::devRequest($devid, $httpreq);
+        if($yreq->errorType != YAPI_SUCCESS) {
+            if(strpos($yreq->errorMsg, 'HTTP status 404') !== false && $this->dataLoggerURL != "/dataLogger.json") {
+                $this->dataLoggerURL = "/dataLogger.json";
+                return $this->getData($runIdx, $timeIdx, $loadval);
+            }
+            return $yreq->errorType;
+        }
+        $loadval = json_decode($yreq->result, true);
+
+        return YAPI_SUCCESS;
+    }
+
+    /**
+     * Builds a list of all data streams hold by the data logger (legacy method).
+     * The caller must pass by reference an empty array to hold YDataStream
+     * objects, and the function fills it with objects describing available
+     * data sequences.
+     *
+     * This is the old way to retrieve data from the DataLogger.
+     * For new applications, you should rather use get_dataSets()
+     * method, or call directly get_recordedData() on the
+     * sensor object.
+     *
+     * @param YDataStream[] $v : an array of YDataStream objects to be filled in
+     *
+     * @return integer : YAPI_SUCCESS if the call succeeds.
+     *
+     * On failure, throws an exception or returns a negative error code.
+     */
+    public function get_dataStreams(&$v)
+    {
+        $v = Array();
+        $loadval = null;
+        $retcode = $this->getData(null, null, $loadval);
+        if($retcode != YAPI_SUCCESS) {
+            return $retcode;
+        }
+        if(sizeof($loadval) == 0) {
+            return YAPI_SUCCESS;
+        }
+        if(!isset($loadval[0]['id'])) {
+            // old datalogger format: [runIdx, timerel, utc, interval]
+            foreach($loadval as $arr) {
+                if(sizeof($arr) < 4) {
+                    return $this->_throw(YAPI_IO_ERROR, "Unexpected JSON reply format", YAPI_IO_ERROR);
+                }
+                $v[] = new YOldDataStream($this,$arr[0],$arr[1],$arr[2],$arr[3]);
+            }
+        } else {
+            // new datalogger format: {"id":"...","unit":"...","streams":["...",...]}
+            $sets = $this->parse_dataSets(json_encode($loadval));
+            for ($i = 0; $i < sizeof($sets); $i++) {
+                $ds = $sets[$i]->get_privateDataStreams();
+                for ($si=0; $si < sizeof($ds); $si++) {
+                    $v[] = $ds[$si];
+                }
+            }
+        }
+        return YAPI_SUCCESS;
+    }
+    public function getDataStreams(&$v)
+    {
+        return $this->get_dataStreams($v);
+    }
+
+    //--- (generated code: YDataLogger implementation)
+
+    function _parseAttr($name, $val)
+    {
+        switch($name) {
+        case 'currentRunIndex':
+            $this->_currentRunIndex = intval($val);
+            return 1;
+        case 'timeUTC':
+            $this->_timeUTC = intval($val);
+            return 1;
+        case 'recording':
+            $this->_recording = intval($val);
+            return 1;
+        case 'autoStart':
+            $this->_autoStart = intval($val);
+            return 1;
+        case 'beaconDriven':
+            $this->_beaconDriven = intval($val);
+            return 1;
+        case 'clearHistory':
+            $this->_clearHistory = intval($val);
+            return 1;
+        }
+        return parent::_parseAttr($name, $val);
+    }
+
+    /**
+     * Returns the current run number, corresponding to the number of times the module was
+     * powered on with the dataLogger enabled at some point.
+     *
+     * @return integer : an integer corresponding to the current run number, corresponding to the number
+     * of times the module was
+     *         powered on with the dataLogger enabled at some point
+     *
+     * On failure, throws an exception or returns Y_CURRENTRUNINDEX_INVALID.
+     */
+    public function get_currentRunIndex()
+    {
+        // $res                    is a int;
+        if ($this->_cacheExpiration <= YAPI::GetTickCount()) {
+            if ($this->load(YAPI::$defaultCacheValidity) != YAPI_SUCCESS) {
+                return Y_CURRENTRUNINDEX_INVALID;
+            }
+        }
+        $res = $this->_currentRunIndex;
+        return $res;
+    }
+
+    /**
+     * Returns the Unix timestamp for current UTC time, if known.
+     *
+     * @return integer : an integer corresponding to the Unix timestamp for current UTC time, if known
+     *
+     * On failure, throws an exception or returns Y_TIMEUTC_INVALID.
+     */
+    public function get_timeUTC()
+    {
+        // $res                    is a long;
+        if ($this->_cacheExpiration <= YAPI::GetTickCount()) {
+            if ($this->load(YAPI::$defaultCacheValidity) != YAPI_SUCCESS) {
+                return Y_TIMEUTC_INVALID;
+            }
+        }
+        $res = $this->_timeUTC;
+        return $res;
+    }
+
+    /**
+     * Changes the current UTC time reference used for recorded data.
+     *
+     * @param integer $newval : an integer corresponding to the current UTC time reference used for recorded data
+     *
+     * @return integer : YAPI_SUCCESS if the call succeeds.
+     *
+     * On failure, throws an exception or returns a negative error code.
+     */
+    public function set_timeUTC($newval)
+    {
+        $rest_val = strval($newval);
+        return $this->_setAttr("timeUTC",$rest_val);
+    }
+
+    /**
+     * Returns the current activation state of the data logger.
+     *
+     * @return integer : a value among Y_RECORDING_OFF, Y_RECORDING_ON and Y_RECORDING_PENDING
+     * corresponding to the current activation state of the data logger
+     *
+     * On failure, throws an exception or returns Y_RECORDING_INVALID.
+     */
+    public function get_recording()
+    {
+        // $res                    is a enumOFFONPENDING;
+        if ($this->_cacheExpiration <= YAPI::GetTickCount()) {
+            if ($this->load(YAPI::$defaultCacheValidity) != YAPI_SUCCESS) {
+                return Y_RECORDING_INVALID;
+            }
+        }
+        $res = $this->_recording;
+        return $res;
+    }
+
+    /**
+     * Changes the activation state of the data logger to start/stop recording data.
+     *
+     * @param integer $newval : a value among Y_RECORDING_OFF, Y_RECORDING_ON and Y_RECORDING_PENDING
+     * corresponding to the activation state of the data logger to start/stop recording data
+     *
+     * @return integer : YAPI_SUCCESS if the call succeeds.
+     *
+     * On failure, throws an exception or returns a negative error code.
+     */
+    public function set_recording($newval)
+    {
+        $rest_val = strval($newval);
+        return $this->_setAttr("recording",$rest_val);
+    }
+
+    /**
+     * Returns the default activation state of the data logger on power up.
+     *
+     * @return integer : either Y_AUTOSTART_OFF or Y_AUTOSTART_ON, according to the default activation
+     * state of the data logger on power up
+     *
+     * On failure, throws an exception or returns Y_AUTOSTART_INVALID.
+     */
+    public function get_autoStart()
+    {
+        // $res                    is a enumONOFF;
+        if ($this->_cacheExpiration <= YAPI::GetTickCount()) {
+            if ($this->load(YAPI::$defaultCacheValidity) != YAPI_SUCCESS) {
+                return Y_AUTOSTART_INVALID;
+            }
+        }
+        $res = $this->_autoStart;
+        return $res;
+    }
+
+    /**
+     * Changes the default activation state of the data logger on power up.
+     * Remember to call the saveToFlash() method of the module if the
+     * modification must be kept.
+     *
+     * @param integer $newval : either Y_AUTOSTART_OFF or Y_AUTOSTART_ON, according to the default
+     * activation state of the data logger on power up
+     *
+     * @return integer : YAPI_SUCCESS if the call succeeds.
+     *
+     * On failure, throws an exception or returns a negative error code.
+     */
+    public function set_autoStart($newval)
+    {
+        $rest_val = strval($newval);
+        return $this->_setAttr("autoStart",$rest_val);
+    }
+
+    /**
+     * Returns true if the data logger is synchronised with the localization beacon.
+     *
+     * @return integer : either Y_BEACONDRIVEN_OFF or Y_BEACONDRIVEN_ON, according to true if the data
+     * logger is synchronised with the localization beacon
+     *
+     * On failure, throws an exception or returns Y_BEACONDRIVEN_INVALID.
+     */
+    public function get_beaconDriven()
+    {
+        // $res                    is a enumONOFF;
+        if ($this->_cacheExpiration <= YAPI::GetTickCount()) {
+            if ($this->load(YAPI::$defaultCacheValidity) != YAPI_SUCCESS) {
+                return Y_BEACONDRIVEN_INVALID;
+            }
+        }
+        $res = $this->_beaconDriven;
+        return $res;
+    }
+
+    /**
+     * Changes the type of synchronisation of the data logger.
+     * Remember to call the saveToFlash() method of the module if the
+     * modification must be kept.
+     *
+     * @param integer $newval : either Y_BEACONDRIVEN_OFF or Y_BEACONDRIVEN_ON, according to the type of
+     * synchronisation of the data logger
+     *
+     * @return integer : YAPI_SUCCESS if the call succeeds.
+     *
+     * On failure, throws an exception or returns a negative error code.
+     */
+    public function set_beaconDriven($newval)
+    {
+        $rest_val = strval($newval);
+        return $this->_setAttr("beaconDriven",$rest_val);
+    }
+
+    public function get_clearHistory()
+    {
+        // $res                    is a enumBOOL;
+        if ($this->_cacheExpiration <= YAPI::GetTickCount()) {
+            if ($this->load(YAPI::$defaultCacheValidity) != YAPI_SUCCESS) {
+                return Y_CLEARHISTORY_INVALID;
+            }
+        }
+        $res = $this->_clearHistory;
+        return $res;
+    }
+
+    public function set_clearHistory($newval)
+    {
+        $rest_val = strval($newval);
+        return $this->_setAttr("clearHistory",$rest_val);
+    }
+
+    /**
+     * Retrieves a data logger for a given identifier.
+     * The identifier can be specified using several formats:
+     * <ul>
+     * <li>FunctionLogicalName</li>
+     * <li>ModuleSerialNumber.FunctionIdentifier</li>
+     * <li>ModuleSerialNumber.FunctionLogicalName</li>
+     * <li>ModuleLogicalName.FunctionIdentifier</li>
+     * <li>ModuleLogicalName.FunctionLogicalName</li>
+     * </ul>
+     *
+     * This function does not require that the data logger is online at the time
+     * it is invoked. The returned object is nevertheless valid.
+     * Use the method YDataLogger.isOnline() to test if the data logger is
+     * indeed online at a given time. In case of ambiguity when looking for
+     * a data logger by logical name, no error is notified: the first instance
+     * found is returned. The search is performed first by hardware name,
+     * then by logical name.
+     *
+     * If a call to this object's is_online() method returns FALSE although
+     * you are certain that the matching device is plugged, make sure that you did
+     * call registerHub() at application initialization time.
+     *
+     * @param string $func : a string that uniquely characterizes the data logger
+     *
+     * @return YDataLogger : a YDataLogger object allowing you to drive the data logger.
+     */
+    public static function FindDataLogger($func)
+    {
+        // $obj                    is a YDataLogger;
+        $obj = YFunction::_FindFromCache('DataLogger', $func);
+        if ($obj == null) {
+            $obj = new YDataLogger($func);
+            YFunction::_AddToCache('DataLogger', $func, $obj);
+        }
+        return $obj;
+    }
+
+    /**
+     * Clears the data logger memory and discards all recorded data streams.
+     * This method also resets the current run index to zero.
+     *
+     * @return integer : YAPI_SUCCESS if the call succeeds.
+     *
+     * On failure, throws an exception or returns a negative error code.
+     */
+    public function forgetAllDataStreams()
+    {
+        return $this->set_clearHistory(Y_CLEARHISTORY_TRUE);
+    }
+
+    /**
+     * Returns a list of YDataSet objects that can be used to retrieve
+     * all measures stored by the data logger.
+     *
+     * This function only works if the device uses a recent firmware,
+     * as YDataSet objects are not supported by firmwares older than
+     * version 13000.
+     *
+     * @return YDataSet[] : a list of YDataSet object.
+     *
+     * On failure, throws an exception or returns an empty list.
+     */
+    public function get_dataSets()
+    {
+        return $this->parse_dataSets($this->_download('logger.json'));
+    }
+
+    public function parse_dataSets($json)
+    {
+        $dslist = Array();      // strArr;
+        // $dataset                is a YDataSetPtr;
+        $res = Array();         // YDataSetArr;
+
+        $dslist = $this->_json_get_array($json);
+        while(sizeof($res) > 0) { array_pop($res); };
+        foreach($dslist as $each) {
+            $dataset = new YDataSet($this);
+            $dataset->_parse($each);
+            $res[] = $dataset;
+        }
+        return $res;
+    }
+
+    public function currentRunIndex()
+    { return $this->get_currentRunIndex(); }
+
+    public function timeUTC()
+    { return $this->get_timeUTC(); }
+
+    public function setTimeUTC($newval)
+    { return $this->set_timeUTC($newval); }
+
+    public function recording()
+    { return $this->get_recording(); }
+
+    public function setRecording($newval)
+    { return $this->set_recording($newval); }
+
+    public function autoStart()
+    { return $this->get_autoStart(); }
+
+    public function setAutoStart($newval)
+    { return $this->set_autoStart($newval); }
+
+    public function beaconDriven()
+    { return $this->get_beaconDriven(); }
+
+    public function setBeaconDriven($newval)
+    { return $this->set_beaconDriven($newval); }
+
+    public function clearHistory()
+    { return $this->get_clearHistory(); }
+
+    public function setClearHistory($newval)
+    { return $this->set_clearHistory($newval); }
+
+    /**
+     * Continues the enumeration of data loggers started using yFirstDataLogger().
+     *
+     * @return YDataLogger : a pointer to a YDataLogger object, corresponding to
+     *         a data logger currently online, or a null pointer
+     *         if there are no more data loggers to enumerate.
+     */
+    public function nextDataLogger()
+    {   $resolve = YAPI::resolveFunction($this->_className, $this->_func);
+        if($resolve->errorType != YAPI_SUCCESS) return null;
+        $next_hwid = YAPI::getNextHardwareId($this->_className, $resolve->result);
+        if($next_hwid == null) return null;
+        return self::FindDataLogger($next_hwid);
+    }
+
+    /**
+     * Starts the enumeration of data loggers currently accessible.
+     * Use the method YDataLogger.nextDataLogger() to iterate on
+     * next data loggers.
+     *
+     * @return YDataLogger : a pointer to a YDataLogger object, corresponding to
+     *         the first data logger currently online, or a null pointer
+     *         if there are none.
+     */
+    public static function FirstDataLogger()
+    {   $next_hwid = YAPI::getFirstHardwareId('DataLogger');
+        if($next_hwid == null) return null;
+        return self::FindDataLogger($next_hwid);
+    }
+
+    //--- (end of generated code: YDataLogger implementation)
+};
+
+//--- (generated code: YDataLogger functions)
+
+/**
+ * Retrieves a data logger for a given identifier.
+ * The identifier can be specified using several formats:
+ * <ul>
+ * <li>FunctionLogicalName</li>
+ * <li>ModuleSerialNumber.FunctionIdentifier</li>
+ * <li>ModuleSerialNumber.FunctionLogicalName</li>
+ * <li>ModuleLogicalName.FunctionIdentifier</li>
+ * <li>ModuleLogicalName.FunctionLogicalName</li>
+ * </ul>
+ *
+ * This function does not require that the data logger is online at the time
+ * it is invoked. The returned object is nevertheless valid.
+ * Use the method YDataLogger.isOnline() to test if the data logger is
+ * indeed online at a given time. In case of ambiguity when looking for
+ * a data logger by logical name, no error is notified: the first instance
+ * found is returned. The search is performed first by hardware name,
+ * then by logical name.
+ *
+ * If a call to this object's is_online() method returns FALSE although
+ * you are certain that the matching device is plugged, make sure that you did
+ * call registerHub() at application initialization time.
+ *
+ * @param string $func : a string that uniquely characterizes the data logger
+ *
+ * @return YDataLogger : a YDataLogger object allowing you to drive the data logger.
+ */
+function yFindDataLogger($func)
+{
+    return YDataLogger::FindDataLogger($func);
+}
+
+/**
+ * Starts the enumeration of data loggers currently accessible.
+ * Use the method YDataLogger.nextDataLogger() to iterate on
+ * next data loggers.
+ *
+ * @return YDataLogger : a pointer to a YDataLogger object, corresponding to
+ *         the first data logger currently online, or a null pointer
+ *         if there are none.
+ */
+function yFirstDataLogger()
+{
+    return YDataLogger::FirstDataLogger();
+}
+
+//--- (end of generated code: YDataLogger functions)
 ?>

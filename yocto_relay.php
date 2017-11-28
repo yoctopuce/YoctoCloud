@@ -1,11 +1,11 @@
 <?php
 /*********************************************************************
  *
- * $Id: yocto_relay.php 23243 2016-02-23 14:13:12Z seb $
+ * $Id: yocto_relay.php 28743 2017-10-03 08:13:15Z seb $
  *
  * Implements YRelay, the high-level API for Relay functions
  *
- * - - - - - - - - - License information: - - - - - - - - - 
+ * - - - - - - - - - License information: - - - - - - - - -
  *
  *  Copyright (C) 2011 and beyond by Yoctopuce Sarl, Switzerland.
  *
@@ -24,7 +24,7 @@
  *  obligations.
  *
  *  THE SOFTWARE AND DOCUMENTATION ARE PROVIDED 'AS IS' WITHOUT
- *  WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING 
+ *  WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING
  *  WITHOUT LIMITATION, ANY WARRANTY OF MERCHANTABILITY, FITNESS
  *  FOR A PARTICULAR PURPOSE, TITLE AND NON-INFRINGEMENT. IN NO
  *  EVENT SHALL LICENSOR BE LIABLE FOR ANY INCIDENTAL, SPECIAL,
@@ -145,28 +145,30 @@ class YRelay extends YFunction
     /**
      * Returns the state of the relays (A for the idle position, B for the active position).
      *
-     * @return either Y_STATE_A or Y_STATE_B, according to the state of the relays (A for the idle
-     * position, B for the active position)
+     * @return integer : either Y_STATE_A or Y_STATE_B, according to the state of the relays (A for the
+     * idle position, B for the active position)
      *
      * On failure, throws an exception or returns Y_STATE_INVALID.
      */
     public function get_state()
     {
+        // $res                    is a enumTOGGLE;
         if ($this->_cacheExpiration <= YAPI::GetTickCount()) {
             if ($this->load(YAPI::$defaultCacheValidity) != YAPI_SUCCESS) {
                 return Y_STATE_INVALID;
             }
         }
-        return $this->_state;
+        $res = $this->_state;
+        return $res;
     }
 
     /**
      * Changes the state of the relays (A for the idle position, B for the active position).
      *
-     * @param newval : either Y_STATE_A or Y_STATE_B, according to the state of the relays (A for the idle
-     * position, B for the active position)
+     * @param integer $newval : either Y_STATE_A or Y_STATE_B, according to the state of the relays (A for
+     * the idle position, B for the active position)
      *
-     * @return YAPI_SUCCESS if the call succeeds.
+     * @return integer : YAPI_SUCCESS if the call succeeds.
      *
      * On failure, throws an exception or returns a negative error code.
      */
@@ -180,20 +182,22 @@ class YRelay extends YFunction
      * Returns the state of the relays at device startup (A for the idle position, B for the active
      * position, UNCHANGED for no change).
      *
-     * @return a value among Y_STATEATPOWERON_UNCHANGED, Y_STATEATPOWERON_A and Y_STATEATPOWERON_B
-     * corresponding to the state of the relays at device startup (A for the idle position, B for the
-     * active position, UNCHANGED for no change)
+     * @return integer : a value among Y_STATEATPOWERON_UNCHANGED, Y_STATEATPOWERON_A and
+     * Y_STATEATPOWERON_B corresponding to the state of the relays at device startup (A for the idle
+     * position, B for the active position, UNCHANGED for no change)
      *
      * On failure, throws an exception or returns Y_STATEATPOWERON_INVALID.
      */
     public function get_stateAtPowerOn()
     {
+        // $res                    is a enumTOGGLEATPOWERON;
         if ($this->_cacheExpiration <= YAPI::GetTickCount()) {
             if ($this->load(YAPI::$defaultCacheValidity) != YAPI_SUCCESS) {
                 return Y_STATEATPOWERON_INVALID;
             }
         }
-        return $this->_stateAtPowerOn;
+        $res = $this->_stateAtPowerOn;
+        return $res;
     }
 
     /**
@@ -201,9 +205,9 @@ class YRelay extends YFunction
      * B for the active position, UNCHANGED for no modification). Remember to call the matching module saveToFlash()
      * method, otherwise this call will have no effect.
      *
-     * @param newval : a value among Y_STATEATPOWERON_UNCHANGED, Y_STATEATPOWERON_A and Y_STATEATPOWERON_B
+     * @param integer $newval : a value among Y_STATEATPOWERON_UNCHANGED, Y_STATEATPOWERON_A and Y_STATEATPOWERON_B
      *
-     * @return YAPI_SUCCESS if the call succeeds.
+     * @return integer : YAPI_SUCCESS if the call succeeds.
      *
      * On failure, throws an exception or returns a negative error code.
      */
@@ -217,27 +221,29 @@ class YRelay extends YFunction
      * Retourne the maximum time (ms) allowed for $THEFUNCTIONS$ to stay in state A before automatically
      * switching back in to B state. Zero means no maximum time.
      *
-     * @return an integer
+     * @return integer : an integer
      *
      * On failure, throws an exception or returns Y_MAXTIMEONSTATEA_INVALID.
      */
     public function get_maxTimeOnStateA()
     {
+        // $res                    is a long;
         if ($this->_cacheExpiration <= YAPI::GetTickCount()) {
             if ($this->load(YAPI::$defaultCacheValidity) != YAPI_SUCCESS) {
                 return Y_MAXTIMEONSTATEA_INVALID;
             }
         }
-        return $this->_maxTimeOnStateA;
+        $res = $this->_maxTimeOnStateA;
+        return $res;
     }
 
     /**
      * Sets the maximum time (ms) allowed for $THEFUNCTIONS$ to stay in state A before automatically
      * switching back in to B state. Use zero for no maximum time.
      *
-     * @param newval : an integer
+     * @param integer $newval : an integer
      *
-     * @return YAPI_SUCCESS if the call succeeds.
+     * @return integer : YAPI_SUCCESS if the call succeeds.
      *
      * On failure, throws an exception or returns a negative error code.
      */
@@ -251,27 +257,29 @@ class YRelay extends YFunction
      * Retourne the maximum time (ms) allowed for $THEFUNCTIONS$ to stay in state B before automatically
      * switching back in to A state. Zero means no maximum time.
      *
-     * @return an integer
+     * @return integer : an integer
      *
      * On failure, throws an exception or returns Y_MAXTIMEONSTATEB_INVALID.
      */
     public function get_maxTimeOnStateB()
     {
+        // $res                    is a long;
         if ($this->_cacheExpiration <= YAPI::GetTickCount()) {
             if ($this->load(YAPI::$defaultCacheValidity) != YAPI_SUCCESS) {
                 return Y_MAXTIMEONSTATEB_INVALID;
             }
         }
-        return $this->_maxTimeOnStateB;
+        $res = $this->_maxTimeOnStateB;
+        return $res;
     }
 
     /**
      * Sets the maximum time (ms) allowed for $THEFUNCTIONS$ to stay in state B before automatically
      * switching back in to A state. Use zero for no maximum time.
      *
-     * @param newval : an integer
+     * @param integer $newval : an integer
      *
-     * @return YAPI_SUCCESS if the call succeeds.
+     * @return integer : YAPI_SUCCESS if the call succeeds.
      *
      * On failure, throws an exception or returns a negative error code.
      */
@@ -284,28 +292,30 @@ class YRelay extends YFunction
     /**
      * Returns the output state of the relays, when used as a simple switch (single throw).
      *
-     * @return either Y_OUTPUT_OFF or Y_OUTPUT_ON, according to the output state of the relays, when used
-     * as a simple switch (single throw)
+     * @return integer : either Y_OUTPUT_OFF or Y_OUTPUT_ON, according to the output state of the relays,
+     * when used as a simple switch (single throw)
      *
      * On failure, throws an exception or returns Y_OUTPUT_INVALID.
      */
     public function get_output()
     {
+        // $res                    is a enumONOFF;
         if ($this->_cacheExpiration <= YAPI::GetTickCount()) {
             if ($this->load(YAPI::$defaultCacheValidity) != YAPI_SUCCESS) {
                 return Y_OUTPUT_INVALID;
             }
         }
-        return $this->_output;
+        $res = $this->_output;
+        return $res;
     }
 
     /**
      * Changes the output state of the relays, when used as a simple switch (single throw).
      *
-     * @param newval : either Y_OUTPUT_OFF or Y_OUTPUT_ON, according to the output state of the relays,
-     * when used as a simple switch (single throw)
+     * @param integer $newval : either Y_OUTPUT_OFF or Y_OUTPUT_ON, according to the output state of the
+     * relays, when used as a simple switch (single throw)
      *
-     * @return YAPI_SUCCESS if the call succeeds.
+     * @return integer : YAPI_SUCCESS if the call succeeds.
      *
      * On failure, throws an exception or returns a negative error code.
      */
@@ -319,20 +329,22 @@ class YRelay extends YFunction
      * Returns the number of milliseconds remaining before the relays is returned to idle position
      * (state A), during a measured pulse generation. When there is no ongoing pulse, returns zero.
      *
-     * @return an integer corresponding to the number of milliseconds remaining before the relays is
-     * returned to idle position
+     * @return integer : an integer corresponding to the number of milliseconds remaining before the
+     * relays is returned to idle position
      *         (state A), during a measured pulse generation
      *
      * On failure, throws an exception or returns Y_PULSETIMER_INVALID.
      */
     public function get_pulseTimer()
     {
+        // $res                    is a long;
         if ($this->_cacheExpiration <= YAPI::GetTickCount()) {
             if ($this->load(YAPI::$defaultCacheValidity) != YAPI_SUCCESS) {
                 return Y_PULSETIMER_INVALID;
             }
         }
-        return $this->_pulseTimer;
+        $res = $this->_pulseTimer;
+        return $res;
     }
 
     public function set_pulseTimer($newval)
@@ -345,9 +357,9 @@ class YRelay extends YFunction
      * Sets the relay to output B (active) for a specified duration, then brings it
      * automatically back to output A (idle state).
      *
-     * @param ms_duration : pulse duration, in millisecondes
+     * @param integer $ms_duration : pulse duration, in millisecondes
      *
-     * @return YAPI_SUCCESS if the call succeeds.
+     * @return integer : YAPI_SUCCESS if the call succeeds.
      *
      * On failure, throws an exception or returns a negative error code.
      */
@@ -359,12 +371,14 @@ class YRelay extends YFunction
 
     public function get_delayedPulseTimer()
     {
+        // $res                    is a YDelayedPulse;
         if ($this->_cacheExpiration <= YAPI::GetTickCount()) {
             if ($this->load(YAPI::$defaultCacheValidity) != YAPI_SUCCESS) {
                 return Y_DELAYEDPULSETIMER_INVALID;
             }
         }
-        return $this->_delayedPulseTimer;
+        $res = $this->_delayedPulseTimer;
+        return $res;
     }
 
     public function set_delayedPulseTimer($newval)
@@ -376,10 +390,10 @@ class YRelay extends YFunction
     /**
      * Schedules a pulse.
      *
-     * @param ms_delay : waiting time before the pulse, in millisecondes
-     * @param ms_duration : pulse duration, in millisecondes
+     * @param integer $ms_delay : waiting time before the pulse, in millisecondes
+     * @param integer $ms_duration : pulse duration, in millisecondes
      *
-     * @return YAPI_SUCCESS if the call succeeds.
+     * @return integer : YAPI_SUCCESS if the call succeeds.
      *
      * On failure, throws an exception or returns a negative error code.
      */
@@ -393,19 +407,22 @@ class YRelay extends YFunction
      * Returns the number of milliseconds remaining before a pulse (delayedPulse() call)
      * When there is no scheduled pulse, returns zero.
      *
-     * @return an integer corresponding to the number of milliseconds remaining before a pulse (delayedPulse() call)
+     * @return integer : an integer corresponding to the number of milliseconds remaining before a pulse
+     * (delayedPulse() call)
      *         When there is no scheduled pulse, returns zero
      *
      * On failure, throws an exception or returns Y_COUNTDOWN_INVALID.
      */
     public function get_countdown()
     {
+        // $res                    is a long;
         if ($this->_cacheExpiration <= YAPI::GetTickCount()) {
             if ($this->load(YAPI::$defaultCacheValidity) != YAPI_SUCCESS) {
                 return Y_COUNTDOWN_INVALID;
             }
         }
-        return $this->_countdown;
+        $res = $this->_countdown;
+        return $res;
     }
 
     /**
@@ -427,9 +444,13 @@ class YRelay extends YFunction
      * found is returned. The search is performed first by hardware name,
      * then by logical name.
      *
-     * @param func : a string that uniquely characterizes the relay
+     * If a call to this object's is_online() method returns FALSE although
+     * you are certain that the matching device is plugged, make sure that you did
+     * call registerHub() at application initialization time.
      *
-     * @return a YRelay object allowing you to drive the relay.
+     * @param string $func : a string that uniquely characterizes the relay
+     *
+     * @return YRelay : a YRelay object allowing you to drive the relay.
      */
     public static function FindRelay($func)
     {
@@ -490,7 +511,7 @@ class YRelay extends YFunction
     /**
      * Continues the enumeration of relays started using yFirstRelay().
      *
-     * @return a pointer to a YRelay object, corresponding to
+     * @return YRelay : a pointer to a YRelay object, corresponding to
      *         a relay currently online, or a null pointer
      *         if there are no more relays to enumerate.
      */
@@ -499,7 +520,7 @@ class YRelay extends YFunction
         if($resolve->errorType != YAPI_SUCCESS) return null;
         $next_hwid = YAPI::getNextHardwareId($this->_className, $resolve->result);
         if($next_hwid == null) return null;
-        return yFindRelay($next_hwid);
+        return self::FindRelay($next_hwid);
     }
 
     /**
@@ -507,7 +528,7 @@ class YRelay extends YFunction
      * Use the method YRelay.nextRelay() to iterate on
      * next relays.
      *
-     * @return a pointer to a YRelay object, corresponding to
+     * @return YRelay : a pointer to a YRelay object, corresponding to
      *         the first relay currently online, or a null pointer
      *         if there are none.
      */
@@ -521,7 +542,7 @@ class YRelay extends YFunction
 
 };
 
-//--- (Relay functions)
+//--- (YRelay functions)
 
 /**
  * Retrieves a relay for a given identifier.
@@ -542,9 +563,13 @@ class YRelay extends YFunction
  * found is returned. The search is performed first by hardware name,
  * then by logical name.
  *
- * @param func : a string that uniquely characterizes the relay
+ * If a call to this object's is_online() method returns FALSE although
+ * you are certain that the matching device is plugged, make sure that you did
+ * call registerHub() at application initialization time.
  *
- * @return a YRelay object allowing you to drive the relay.
+ * @param string $func : a string that uniquely characterizes the relay
+ *
+ * @return YRelay : a YRelay object allowing you to drive the relay.
  */
 function yFindRelay($func)
 {
@@ -556,7 +581,7 @@ function yFindRelay($func)
  * Use the method YRelay.nextRelay() to iterate on
  * next relays.
  *
- * @return a pointer to a YRelay object, corresponding to
+ * @return YRelay : a pointer to a YRelay object, corresponding to
  *         the first relay currently online, or a null pointer
  *         if there are none.
  */
@@ -565,5 +590,5 @@ function yFirstRelay()
     return YRelay::FirstRelay();
 }
 
-//--- (end of Relay functions)
+//--- (end of YRelay functions)
 ?>

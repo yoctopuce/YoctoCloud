@@ -1,11 +1,11 @@
 <?php
 /*********************************************************************
  *
- * $Id: yocto_wakeupschedule.php 23243 2016-02-23 14:13:12Z seb $
+ * $Id: yocto_wakeupschedule.php 28743 2017-10-03 08:13:15Z seb $
  *
  * Implements YWakeUpSchedule, the high-level API for WakeUpSchedule functions
  *
- * - - - - - - - - - License information: - - - - - - - - - 
+ * - - - - - - - - - License information: - - - - - - - - -
  *
  *  Copyright (C) 2011 and beyond by Yoctopuce Sarl, Switzerland.
  *
@@ -24,7 +24,7 @@
  *  obligations.
  *
  *  THE SOFTWARE AND DOCUMENTATION ARE PROVIDED 'AS IS' WITHOUT
- *  WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING 
+ *  WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING
  *  WITHOUT LIMITATION, ANY WARRANTY OF MERCHANTABILITY, FITNESS
  *  FOR A PARTICULAR PURPOSE, TITLE AND NON-INFRINGEMENT. IN NO
  *  EVENT SHALL LICENSOR BE LIABLE FOR ANY INCIDENTAL, SPECIAL,
@@ -121,26 +121,30 @@ class YWakeUpSchedule extends YFunction
     /**
      * Returns the minutes in the 00-29 interval of each hour scheduled for wake up.
      *
-     * @return an integer corresponding to the minutes in the 00-29 interval of each hour scheduled for wake up
+     * @return integer : an integer corresponding to the minutes in the 00-29 interval of each hour
+     * scheduled for wake up
      *
      * On failure, throws an exception or returns Y_MINUTESA_INVALID.
      */
     public function get_minutesA()
     {
+        // $res                    is a int;
         if ($this->_cacheExpiration <= YAPI::GetTickCount()) {
             if ($this->load(YAPI::$defaultCacheValidity) != YAPI_SUCCESS) {
                 return Y_MINUTESA_INVALID;
             }
         }
-        return $this->_minutesA;
+        $res = $this->_minutesA;
+        return $res;
     }
 
     /**
      * Changes the minutes in the 00-29 interval when a wake up must take place.
      *
-     * @param newval : an integer corresponding to the minutes in the 00-29 interval when a wake up must take place
+     * @param integer $newval : an integer corresponding to the minutes in the 00-29 interval when a wake
+     * up must take place
      *
-     * @return YAPI_SUCCESS if the call succeeds.
+     * @return integer : YAPI_SUCCESS if the call succeeds.
      *
      * On failure, throws an exception or returns a negative error code.
      */
@@ -153,26 +157,30 @@ class YWakeUpSchedule extends YFunction
     /**
      * Returns the minutes in the 30-59 intervalof each hour scheduled for wake up.
      *
-     * @return an integer corresponding to the minutes in the 30-59 intervalof each hour scheduled for wake up
+     * @return integer : an integer corresponding to the minutes in the 30-59 intervalof each hour
+     * scheduled for wake up
      *
      * On failure, throws an exception or returns Y_MINUTESB_INVALID.
      */
     public function get_minutesB()
     {
+        // $res                    is a int;
         if ($this->_cacheExpiration <= YAPI::GetTickCount()) {
             if ($this->load(YAPI::$defaultCacheValidity) != YAPI_SUCCESS) {
                 return Y_MINUTESB_INVALID;
             }
         }
-        return $this->_minutesB;
+        $res = $this->_minutesB;
+        return $res;
     }
 
     /**
      * Changes the minutes in the 30-59 interval when a wake up must take place.
      *
-     * @param newval : an integer corresponding to the minutes in the 30-59 interval when a wake up must take place
+     * @param integer $newval : an integer corresponding to the minutes in the 30-59 interval when a wake
+     * up must take place
      *
-     * @return YAPI_SUCCESS if the call succeeds.
+     * @return integer : YAPI_SUCCESS if the call succeeds.
      *
      * On failure, throws an exception or returns a negative error code.
      */
@@ -185,26 +193,28 @@ class YWakeUpSchedule extends YFunction
     /**
      * Returns the hours scheduled for wake up.
      *
-     * @return an integer corresponding to the hours scheduled for wake up
+     * @return integer : an integer corresponding to the hours scheduled for wake up
      *
      * On failure, throws an exception or returns Y_HOURS_INVALID.
      */
     public function get_hours()
     {
+        // $res                    is a int;
         if ($this->_cacheExpiration <= YAPI::GetTickCount()) {
             if ($this->load(YAPI::$defaultCacheValidity) != YAPI_SUCCESS) {
                 return Y_HOURS_INVALID;
             }
         }
-        return $this->_hours;
+        $res = $this->_hours;
+        return $res;
     }
 
     /**
      * Changes the hours when a wake up must take place.
      *
-     * @param newval : an integer corresponding to the hours when a wake up must take place
+     * @param integer $newval : an integer corresponding to the hours when a wake up must take place
      *
-     * @return YAPI_SUCCESS if the call succeeds.
+     * @return integer : YAPI_SUCCESS if the call succeeds.
      *
      * On failure, throws an exception or returns a negative error code.
      */
@@ -217,26 +227,28 @@ class YWakeUpSchedule extends YFunction
     /**
      * Returns the days of the week scheduled for wake up.
      *
-     * @return an integer corresponding to the days of the week scheduled for wake up
+     * @return integer : an integer corresponding to the days of the week scheduled for wake up
      *
      * On failure, throws an exception or returns Y_WEEKDAYS_INVALID.
      */
     public function get_weekDays()
     {
+        // $res                    is a int;
         if ($this->_cacheExpiration <= YAPI::GetTickCount()) {
             if ($this->load(YAPI::$defaultCacheValidity) != YAPI_SUCCESS) {
                 return Y_WEEKDAYS_INVALID;
             }
         }
-        return $this->_weekDays;
+        $res = $this->_weekDays;
+        return $res;
     }
 
     /**
      * Changes the days of the week when a wake up must take place.
      *
-     * @param newval : an integer corresponding to the days of the week when a wake up must take place
+     * @param integer $newval : an integer corresponding to the days of the week when a wake up must take place
      *
-     * @return YAPI_SUCCESS if the call succeeds.
+     * @return integer : YAPI_SUCCESS if the call succeeds.
      *
      * On failure, throws an exception or returns a negative error code.
      */
@@ -249,26 +261,28 @@ class YWakeUpSchedule extends YFunction
     /**
      * Returns the days of the month scheduled for wake up.
      *
-     * @return an integer corresponding to the days of the month scheduled for wake up
+     * @return integer : an integer corresponding to the days of the month scheduled for wake up
      *
      * On failure, throws an exception or returns Y_MONTHDAYS_INVALID.
      */
     public function get_monthDays()
     {
+        // $res                    is a int;
         if ($this->_cacheExpiration <= YAPI::GetTickCount()) {
             if ($this->load(YAPI::$defaultCacheValidity) != YAPI_SUCCESS) {
                 return Y_MONTHDAYS_INVALID;
             }
         }
-        return $this->_monthDays;
+        $res = $this->_monthDays;
+        return $res;
     }
 
     /**
      * Changes the days of the month when a wake up must take place.
      *
-     * @param newval : an integer corresponding to the days of the month when a wake up must take place
+     * @param integer $newval : an integer corresponding to the days of the month when a wake up must take place
      *
-     * @return YAPI_SUCCESS if the call succeeds.
+     * @return integer : YAPI_SUCCESS if the call succeeds.
      *
      * On failure, throws an exception or returns a negative error code.
      */
@@ -281,26 +295,28 @@ class YWakeUpSchedule extends YFunction
     /**
      * Returns the months scheduled for wake up.
      *
-     * @return an integer corresponding to the months scheduled for wake up
+     * @return integer : an integer corresponding to the months scheduled for wake up
      *
      * On failure, throws an exception or returns Y_MONTHS_INVALID.
      */
     public function get_months()
     {
+        // $res                    is a int;
         if ($this->_cacheExpiration <= YAPI::GetTickCount()) {
             if ($this->load(YAPI::$defaultCacheValidity) != YAPI_SUCCESS) {
                 return Y_MONTHS_INVALID;
             }
         }
-        return $this->_months;
+        $res = $this->_months;
+        return $res;
     }
 
     /**
      * Changes the months when a wake up must take place.
      *
-     * @param newval : an integer corresponding to the months when a wake up must take place
+     * @param integer $newval : an integer corresponding to the months when a wake up must take place
      *
-     * @return YAPI_SUCCESS if the call succeeds.
+     * @return integer : YAPI_SUCCESS if the call succeeds.
      *
      * On failure, throws an exception or returns a negative error code.
      */
@@ -313,18 +329,20 @@ class YWakeUpSchedule extends YFunction
     /**
      * Returns the date/time (seconds) of the next wake up occurence.
      *
-     * @return an integer corresponding to the date/time (seconds) of the next wake up occurence
+     * @return integer : an integer corresponding to the date/time (seconds) of the next wake up occurence
      *
      * On failure, throws an exception or returns Y_NEXTOCCURENCE_INVALID.
      */
     public function get_nextOccurence()
     {
+        // $res                    is a long;
         if ($this->_cacheExpiration <= YAPI::GetTickCount()) {
             if ($this->load(YAPI::$defaultCacheValidity) != YAPI_SUCCESS) {
                 return Y_NEXTOCCURENCE_INVALID;
             }
         }
-        return $this->_nextOccurence;
+        $res = $this->_nextOccurence;
+        return $res;
     }
 
     /**
@@ -346,9 +364,13 @@ class YWakeUpSchedule extends YFunction
      * found is returned. The search is performed first by hardware name,
      * then by logical name.
      *
-     * @param func : a string that uniquely characterizes the wake up schedule
+     * If a call to this object's is_online() method returns FALSE although
+     * you are certain that the matching device is plugged, make sure that you did
+     * call registerHub() at application initialization time.
      *
-     * @return a YWakeUpSchedule object allowing you to drive the wake up schedule.
+     * @param string $func : a string that uniquely characterizes the wake up schedule
+     *
+     * @return YWakeUpSchedule : a YWakeUpSchedule object allowing you to drive the wake up schedule.
      */
     public static function FindWakeUpSchedule($func)
     {
@@ -367,7 +389,7 @@ class YWakeUpSchedule extends YFunction
     public function get_minutes()
     {
         // $res                    is a long;
-        // may throw an exception
+
         $res = $this->get_minutesB();
         $res = (($res) << (30));
         $res = $res + $this->get_minutesA();
@@ -377,9 +399,9 @@ class YWakeUpSchedule extends YFunction
     /**
      * Changes all the minutes where a wake up must take place.
      *
-     * @param bitmap : Minutes 00-59 of each hour scheduled for wake up.
+     * @param integer $bitmap : Minutes 00-59 of each hour scheduled for wake up.
      *
-     * @return YAPI_SUCCESS if the call succeeds.
+     * @return integer : YAPI_SUCCESS if the call succeeds.
      *
      * On failure, throws an exception or returns a negative error code.
      */
@@ -432,7 +454,7 @@ class YWakeUpSchedule extends YFunction
     /**
      * Continues the enumeration of wake up schedules started using yFirstWakeUpSchedule().
      *
-     * @return a pointer to a YWakeUpSchedule object, corresponding to
+     * @return YWakeUpSchedule : a pointer to a YWakeUpSchedule object, corresponding to
      *         a wake up schedule currently online, or a null pointer
      *         if there are no more wake up schedules to enumerate.
      */
@@ -441,7 +463,7 @@ class YWakeUpSchedule extends YFunction
         if($resolve->errorType != YAPI_SUCCESS) return null;
         $next_hwid = YAPI::getNextHardwareId($this->_className, $resolve->result);
         if($next_hwid == null) return null;
-        return yFindWakeUpSchedule($next_hwid);
+        return self::FindWakeUpSchedule($next_hwid);
     }
 
     /**
@@ -449,7 +471,7 @@ class YWakeUpSchedule extends YFunction
      * Use the method YWakeUpSchedule.nextWakeUpSchedule() to iterate on
      * next wake up schedules.
      *
-     * @return a pointer to a YWakeUpSchedule object, corresponding to
+     * @return YWakeUpSchedule : a pointer to a YWakeUpSchedule object, corresponding to
      *         the first wake up schedule currently online, or a null pointer
      *         if there are none.
      */
@@ -463,7 +485,7 @@ class YWakeUpSchedule extends YFunction
 
 };
 
-//--- (WakeUpSchedule functions)
+//--- (YWakeUpSchedule functions)
 
 /**
  * Retrieves a wake up schedule for a given identifier.
@@ -484,9 +506,13 @@ class YWakeUpSchedule extends YFunction
  * found is returned. The search is performed first by hardware name,
  * then by logical name.
  *
- * @param func : a string that uniquely characterizes the wake up schedule
+ * If a call to this object's is_online() method returns FALSE although
+ * you are certain that the matching device is plugged, make sure that you did
+ * call registerHub() at application initialization time.
  *
- * @return a YWakeUpSchedule object allowing you to drive the wake up schedule.
+ * @param string $func : a string that uniquely characterizes the wake up schedule
+ *
+ * @return YWakeUpSchedule : a YWakeUpSchedule object allowing you to drive the wake up schedule.
  */
 function yFindWakeUpSchedule($func)
 {
@@ -498,7 +524,7 @@ function yFindWakeUpSchedule($func)
  * Use the method YWakeUpSchedule.nextWakeUpSchedule() to iterate on
  * next wake up schedules.
  *
- * @return a pointer to a YWakeUpSchedule object, corresponding to
+ * @return YWakeUpSchedule : a pointer to a YWakeUpSchedule object, corresponding to
  *         the first wake up schedule currently online, or a null pointer
  *         if there are none.
  */
@@ -507,5 +533,5 @@ function yFirstWakeUpSchedule()
     return YWakeUpSchedule::FirstWakeUpSchedule();
 }
 
-//--- (end of WakeUpSchedule functions)
+//--- (end of YWakeUpSchedule functions)
 ?>

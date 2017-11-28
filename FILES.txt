@@ -3,6 +3,6 @@
 /yocto_wakeupschedule.php (modif:Tue Oct  3 10:21:47 2017 size:19431)
 /README.md (modif:Mon Nov 27 16:11:02 2017 size:1778)
 /yocto_wakeupmonitor.php (modif:Tue Oct  3 10:21:47 2017 size:20117)
-/yocto_api.php (modif:Mon Nov 27 16:11:06 2017 size:385068)
+/yocto_api.php (modif:Tue Nov 28 09:18:14 2017 size:385068)
 /index.php (modif:Mon Nov 27 12:52:34 2017 size:171473)
 /yocto_anbutton.php (modif:Tue Oct  3 10:21:47 2017 size:25035)

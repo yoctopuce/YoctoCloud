@@ -2689,7 +2689,7 @@ class YAPI
      */
     public static function GetAPIVersion()
     {
-        return "1.10.29316";
+        return "1.10.29328";
     }
 
     /**

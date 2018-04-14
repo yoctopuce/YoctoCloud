@@ -1659,11 +1659,10 @@ DIV.fileDetailsContents
 <?php editPartEnd(); ?>
 
 </style>
-
-<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
-<script src="http://code.highcharts.com/stock/highstock.js"></script>
-<script src="http://code.highcharts.com/modules/exporting.js"></script>
-<script src="http://code.highcharts.com/modules/offline-exporting.js"></script>
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
+<script src="//code.highcharts.com/stock/highstock.js"></script>
+<script src="//code.highcharts.com/modules/exporting.js"></script>
+<script src="//code.highcharts.com/modules/offline-exporting.js"></script>
 <script>
 var GRAPHELMT =0;
 var DECOELMT =1;

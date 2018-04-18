@@ -38,8 +38,8 @@
  *
  *********************************************************************/
 
-// This script PHP will allow you to create your very own visualisation cloud 
-// to control Yoctopuce sensors. Basically you will be able to interactively 
+// This script PHP will allow you to create your very own visualisation cloud
+// to control Yoctopuce sensors. Basically you will be able to interactively
 // build a user interface with graphs showing your Yoctopuce data history.
 //
 // Installation:
@@ -48,30 +48,30 @@
 //
 // Configuration
 // 1/ With a web browser, Open your YoctoHub/VirtualHub configuration. in the
-//    "Outgoing callbacks" section, define a "Yocto-API"  callback pointing to 
-//    the index.php file you just copied on your server. Test the callback with 
-//    the "test" button, you should get a message with "Done." at the end. 
+//    "Outgoing callbacks" section, define a "Yocto-API"  callback pointing to
+//    the index.php file you just copied on your server. Test the callback with
+//    the "test" button, you should get a message with "Done." at the end.
 //    If everything is fine, just save and close the configuration
 // 2/ With your browser, open  the URL pointing on your index.php and
 //    add "?edit" at the end of the URL, this will make a edition menu
-//    appear, you can start to add a graph with "new..>chart". 
+//    appear, you can start to add a graph with "new..>chart".
 //
 // Usage:
 //    For consultation only, just open the URL without the ?edit parameter
 //
 // Feeds
-//    The application can handle different sets of sensors, just use add the 
+//    The application can handle different sets of sensors, just use add the
 //    parameter &feed=ArbitraryName on all URLs, including the one defined
-//    in the Hubs callback configuration 
-//   
+//    in the Hubs callback configuration
+//
 // More detail about this application our blog:
 //  www.yoctopuce.com/EN/article/a-yoctopuce-web-based-app-to-draw-sensors-graphs
 //
-// You'll probably want to remove that annoying pop-up notice about Highcharts. 
-// Just create an empty file named YesIKnowThatHighStockLibraryIsNotFree.txt 
-// next to index.php and the pop-up will be gone. That being said, if you 
+// You'll probably want to remove that annoying pop-up notice about Highcharts.
+// Just create an empty file named YesIKnowThatHighStockLibraryIsNotFree.txt
+// next to index.php and the pop-up will be gone. That being said, if you
 // plan to use that application for anything else but personal or non-profit
-// project, you should buy a HighStock license. These  guys at HighSoft made 
+// project, you should buy a HighStock license. These  guys at HighSoft made
 // an amazing work, they deserve their money.
 //
 include("yocto_api.php");
@@ -88,7 +88,7 @@ $now              = time();
 $appReady         = 0;
 $shownotice       = false;
 $snow             = gmdate("Y-m-d\TH:i:s\z", $now);
-define("MAX_DATASRC_PER_GRAPH",       3);
+define("MAX_DATASRC_PER_GRAPH",       4);
 define("MAX_YAXIS_PER_GRAPH",         2);
 define("MAX_YBAND_PER_GRAPH",         3);
 define("MAX_VARIABLE_PER_DECO",       6);
@@ -100,14 +100,14 @@ define("TRIMBLOCKSIZE",            5000);
 define("PHPDECOREFRESHDELAY",     10000);
 define('DATAFOLDER',             'data');
 define("IFRAMEHEADER","<HTML><head><meta http-equiv='Content-Type' content='text/html; charset=windows-1252'></head><BODY>");
-   
+
 $bin="eJxlkMtOxDAMRX/Fu2xm2v2orQQseAjBghUrlKZuYyaNq8Sl9O9xO+IhsUmsm/he+1wj2MUmB"
     ."PFW9ECoLPiEfW28yHQqy2VZCk+Dd94myYXjsZwSd7OTXG56FnZn09x9lxCoTTatVWkbmDN2QF"
     ."GNKUOfUNOmKZCzQhxBtaptIsv+tI1RlW1TwCvP4GzcuoEE5thh2me7SaidH1rwOHLMcCWSqJ0"
     ."3t+MTx03G5MgGeCSHUfs1oOcEE6bMUXWto37WFXq11usddZNL7n0Pq0ZTFIwdCEPHYOOqw8cB"
     ."MKjbQuIvy/zZ47B3Zc9z6P7hU3na+WXuZaf3A63wMgbTtPMKVqld5uUeflE+vGwUC6gmyLIGr"
     ."I3gpxxtoCGekn4T02ggdbUZqBUDLtica4MdyZtiEY4GmufzAW4VMkmx2VXl1HwBRRyyrQ==";
-      
+
 class sensor
 {
     public $data = array();
@@ -175,7 +175,7 @@ function GetDataFileHeader($sensor)
         $snow       = "N/A";
         $resolution = 0;
     }
-  
+
   $header="[sensor]\r\n"
          ."lastupdate=\"$snow\"\r\n"
          ."logicalname=\"$name\"\r\n"
@@ -555,7 +555,7 @@ function loadGraphData($feed, $id, $indexes, $names, $timestamps)
                     print('new Array(' . $maxcode . "),\n");
                     print('new Array(' . $curcode);
                     printf("),%d,%s);\n", $resolution, json_encode($unit));
-                    // logmsg("//$curcode");		   
+                    // logmsg("//$curcode");
                 } else
                     printf("// no data available for  $filename\n");
             } else
@@ -646,13 +646,13 @@ if (YtestHub("callback", 100, $errmsg) == YAPI_SUCCESS) {
                     }
                 }
     }
-    // enumerate all available sensor 
+    // enumerate all available sensor
     $sensor = YSensor::FirstSensor();
     while (!is_null($sensor)) {
         handleSensor($sensor, $dataTrimSize, $dataMaxSize);
         $sensor = $sensor->nextSensor();
     }
-    // enumerate all available relay 
+    // enumerate all available relay
     $sensor = YRelay::FirstRelay();
     while (!is_null($sensor)) {
         handleSensor($sensor, $dataTrimSize, $dataMaxSize);
@@ -726,7 +726,7 @@ if (YtestHub("callback", 100, $errmsg) == YAPI_SUCCESS) {
     ;
     abort("$snow Done.");
 }
-// load all sensor data for the sensor data. 
+// load all sensor data for the sensor data.
 $sensors         = Array();
 $background      = getBackgroundDefaultSettings();
 $callBackFreq    = getCallBackFreqDefaultSettings();
@@ -752,7 +752,7 @@ function addJsCode($code)
     print("<SCRIPT>\n$code\n</SCRIPT>\n");
 }
 function printJsSaveCode()
-{   
+{
     global $FEED;
     printf(IFRAMEHEADER."\n<form id='myform' action='%s?cmd=saveconfig&feed=$FEED' method='post'>\n<textArea name='data' id='data'></textArea>\n</form>\n", currentURL());
     addJsCode("document.getElementById('data').value=window.parent.getConfigData();\n" . "document.getElementById('myform').submit();");
@@ -807,7 +807,7 @@ function printRawDataContent()
             $data[$i]['index'] = $toRead - 1;
             fclose($fh);
         }
-    
+
     $code = IFRAMEHEADER."<script>\n" . "window.parent.updateRawDataWindow([";
     for ($i = 0; $i < sizeof($data); $i++)
         $code .= (($i > 0) ? ',' : '') . '"' . $data[$i]['header']['sensor']['logicalname'] . '"';
@@ -1020,20 +1020,20 @@ function printDataFileStats()
 	Print(json_encode($data));
 	Print(");");
 	print("</script></body></html>\n");
-	die('Done.');		
-	
+	die('Done.');
+
    var_dump($data);
-   die('done');   
-      
+   die('done');
+
  }
 
 
 
 if (array_key_exists('cmd',$_GET))
- 
+
  { $cmd =$_GET['cmd'];
    switch($cmd)
-    
+
    {  case 'getcsv'     : $UTCoffset=0;
                           if (array_key_exists('UTCoffset',$_GET)) $UTCoffset=intVal($_GET['UTCoffset']);
                           printCsvDataContent($UTCoffset); die('done.');break;
@@ -1043,17 +1043,17 @@ if (array_key_exists('cmd',$_GET))
       case 'jssave'     : printJsSaveCode();     die('done.');break;
       case 'saveconfig' : saveConfig();          die('done.'); break;
       case 'getlastestdata' : loadLatestData($_GET['feed']);  die('done.'); break;
-      case 'showDataFileStats' : printDataFileStats();die('done.'); break;	
+      case 'showDataFileStats' : printDataFileStats();die('done.'); break;
       case 'delete'     : if (array_key_exists('file',$_GET)) deleteFile($_GET['file']);
-					      die('done'); 
+					      die('done');
 						  break;
       case 'getdata'    : loadGraphData($_GET['feed'],$_GET['id'],$_GET['indexes'],$_GET['name'],$_GET['time']);
-	                     die('done.'); 
-	                     break;	  	   
+	                     die('done.');
+	                     break;
    }
-   die('invalid command');	
+   die('invalid command');
  }
- 
+
 define("TYPE_FLOAT" , 0);
 define("TYPE_PERCENT" , 1);
 define("TYPE_INT"   , 2);
@@ -1097,42 +1097,42 @@ define( "NOTHING"       , 0);
 $defaultColor= Array('#FF0000','#0000FF','#000000');
 
 $DECO_EDITABLE_VALUES =
- Array(  Array("caption"=> "Window ",         "editable"=>false, "columnBreak" => true,       "appliesTo"=>NOTHING), 
+ Array(  Array("caption"=> "Window ",         "editable"=>false, "columnBreak" => true,       "appliesTo"=>NOTHING),
          Array("caption"=> "Left",            "prefix"=>"",      "name"=>"left",           "type"=> TYPE_PERCENT,   "defaultValue"=>"25+2*int_index","nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>STYLE_OBJ,"hint"=>'Widget left position, relative to browser window width.'),
          Array("caption"=> "Top",             "prefix"=>"",      "name"=>"top",            "type"=> TYPE_PERCENT,   "defaultValue"=>"25+2*int_index","nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>STYLE_OBJ,"hint"=>'Widget top position, relative to browser window height.'),
          Array("caption"=> "Width",           "prefix"=>"",      "name"=>"width",          "type"=> TYPE_PERCENT,   "defaultValue"=>"40"            ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>STYLE_OBJ,"hint"=>'Widget width, relative to browser window width.'),
-         Array("caption"=> "Z-index",         "prefix"=>"",      "name"=>"zIndex",         "type"=> TYPE_INT,       "defaultValue"=>"0"             ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>STYLE_OBJ,"hint"=>'Vertical position, the widget with the higher index will in front of all others.'),         
+         Array("caption"=> "Z-index",         "prefix"=>"",      "name"=>"zIndex",         "type"=> TYPE_INT,       "defaultValue"=>"0"             ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>STYLE_OBJ,"hint"=>'Vertical position, the widget with the higher index will in front of all others.'),
        //Array("caption"=> "Height",          "prefix"=>"",      "name"=>"height",         "type"=> TYPE_PERCENT,   "defaultValue"=>"10"            ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>STYLE_OBJ),
          Array("caption"=> "Border width",    "prefix"=>"",      "name"=>"borderWidth",    "type"=> TYPE_PX,        "defaultValue"=>"1"             ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>STYLE_OBJ,"hint"=>'Widget border width, in pixels.'),
          Array("caption"=> "Border color",    "prefix"=>"",      "name"=>"borderColor",    "type"=> TYPE_COLOR,     "defaultValue"=>"#000000"       ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>STYLE_OBJ,"hint"=>'Widget border color, as a HTLM color code.'),
          Array("caption"=> "Border radius",   "prefix"=>"",      "name"=>"borderRadius",   "type"=> TYPE_PX,        "defaultValue"=>"0"             ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>STYLE_OBJ,"hint"=>'Widget border radius, in pixels.'),
          Array("caption"=> "Left Margin",     "prefix"=>"",      "name"=>"paddingLeft",    "type"=> TYPE_PX,        "defaultValue"=>"5"             ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>STYLE_OBJ,"hint"=>'Widget inner left margin, in pixels.'),
-         Array("caption"=> "Right Margin",    "prefix"=>"",      "name"=>"paddingRight",   "type"=> TYPE_PX,        "defaultValue"=>"5"             ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>STYLE_OBJ,"hint"=>'Widget inner right margin, in pixels.'),		 
+         Array("caption"=> "Right Margin",    "prefix"=>"",      "name"=>"paddingRight",   "type"=> TYPE_PX,        "defaultValue"=>"5"             ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>STYLE_OBJ,"hint"=>'Widget inner right margin, in pixels.'),
    	     Array("caption"=> "Top Margin",      "prefix"=>"",      "name"=>"paddingTop",     "type"=> TYPE_PX,        "defaultValue"=>"5"             ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>STYLE_OBJ,"hint"=>'Widget inner top margin, in pixels.'),
-         Array("caption"=> "Bottom Margin",   "prefix"=>"",      "name"=>"paddingBottom",  "type"=> TYPE_PX,        "defaultValue"=>"5"             ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>STYLE_OBJ,"hint"=>'Widget inner bottom margin, in pixels.'),		 
-   	     Array("caption"=> "Bg color"        ,"prefix"=>"",      "name"=>"backgroundColor","type"=> TYPE_COLOR,     "defaultValue"=>"#f0f0f0"       ,"nullable"=>true, "editable"=>true,"index"=>null,"appliesTo"=>STYLE_OBJ,"hint"=>'Widget background color,  as a HTLM color code.'), 
+         Array("caption"=> "Bottom Margin",   "prefix"=>"",      "name"=>"paddingBottom",  "type"=> TYPE_PX,        "defaultValue"=>"5"             ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>STYLE_OBJ,"hint"=>'Widget inner bottom margin, in pixels.'),
+   	     Array("caption"=> "Bg color"        ,"prefix"=>"",      "name"=>"backgroundColor","type"=> TYPE_COLOR,     "defaultValue"=>"#f0f0f0"       ,"nullable"=>true, "editable"=>true,"index"=>null,"appliesTo"=>STYLE_OBJ,"hint"=>'Widget background color,  as a HTLM color code.'),
 	     Array("caption"=> "Text",            "prefix"=>"",      "name"=>"innerHTML",      "type"=> TYPE_LONGSTRING,"defaultValue"=>"Hello World!"  ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>DECOTEXT_OBJ,"hint"=>'Widget inner text, you can use variables {$1}...{$'.MAX_VARIABLE_PER_DECO.'}. HTML code is supported, but not checked.'),
          Array("caption"=> "Size",            "prefix"=>"",      "name"=>"fontSize",       "type"=> TYPE_FONTSIZE,  "defaultValue"=>"2"             ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>STYLE_OBJ,"hint"=>'Widget inner text size.'),
          Array("caption"=> "Color",           "prefix"=>"",      "name"=>"color",          "type"=> TYPE_COLOR,     "defaultValue"=>"#000000"       ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>STYLE_OBJ,"hint"=>'Widget inner text color, as a HTLM color code.'),
          Array("caption"=> "Align",           "prefix"=>"",      "name"=>"textAlign",      "type"=> TYPE_TALIGN,    "defaultValue"=>"center"        ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>STYLE_OBJ,"hint"=>'Widget typographic alignment.')
-  
-		
+
+
   );
-  
-$DECO_EDITABLE_VALUES[]= Array("caption"=> "Variables ",         "editable"=>false, "columnBreak" => true,       "appliesTo"=>NOTHING);     
+
+$DECO_EDITABLE_VALUES[]= Array("caption"=> "Variables ",         "editable"=>false, "columnBreak" => true,       "appliesTo"=>NOTHING);
 for ($i=0;$i<MAX_VARIABLE_PER_DECO;$i++)
-  { $DECO_EDITABLE_VALUES[]=Array("caption"=> "Variable ".($i+1),"editable"=>false, "columnBreak" => false,   "appliesTo"=>NOTHING); 
+  { $DECO_EDITABLE_VALUES[]=Array("caption"=> "Variable ".($i+1),"editable"=>false, "columnBreak" => false,   "appliesTo"=>NOTHING);
     $DECO_EDITABLE_VALUES[]=Array("caption"=> "Data src",   "prefix"=>"var",     "name"=>"datasource",     "type"=> TYPE_DATASRC, "defaultValue"=>null        ,"nullable"=>false,"editable"=>true,"index"=>$i,"appliesTo"=>DECOTEXT_OBJ,"hint"=>'Source of data: Yoctopuce Sensor, relay or AnButton.');
     $DECO_EDITABLE_VALUES[]=Array("caption"=> "Precision",  "prefix"=>"var",     "name"=>"precision",       "type"=> TYPE_PRECISION,    "defaultValue"=>1     ,"nullable"=>false,"editable"=>true,"index"=>$i,"appliesTo"=>DECOTEXT_OBJ,"hint"=>'Displayed precision');
     $DECO_EDITABLE_VALUES[]=Array("caption"=> "Show unit",  "prefix"=>"var",     "name"=>"showunit",       "type"=> TYPE_BOOL,    "defaultValue"=>true        ,"nullable"=>false,"editable"=>true,"index"=>$i,"appliesTo"=>DECOTEXT_OBJ,"hint"=>'Shoes the data-source unit as defined by the Yoctopuce sensor.');
-  
-  }   
 
-    
+  }
+
+
 
 
 $GRAPH_EDITABLE_VALUES =
- Array(  Array("caption"=> "Window ",         "editable"=>false, "columnBreak" => true,       "appliesTo"=>NOTHING), 
+ Array(  Array("caption"=> "Window ",         "editable"=>false, "columnBreak" => true,       "appliesTo"=>NOTHING),
          Array("caption"=> "Left",            "prefix"=>"",      "name"=>"left",           "type"=> TYPE_PERCENT, "defaultValue"=>"25+2*int_index","nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>STYLE_OBJ,"hint"=>'Chart frame left position, relative to browser window width.'),
          Array("caption"=> "Top",             "prefix"=>"",      "name"=>"top",            "type"=> TYPE_PERCENT, "defaultValue"=>"25+2*int_index","nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>STYLE_OBJ,"hint"=>'Chart frame top position, relative to browser window height.'),
          Array("caption"=> "Width",           "prefix"=>"",      "name"=>"width",          "type"=> TYPE_PERCENT, "defaultValue"=>"50"            ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>STYLE_OBJ,"hint"=>'Chart frame width, relative to browser window width.'),
@@ -1142,80 +1142,80 @@ $GRAPH_EDITABLE_VALUES =
          Array("caption"=> "Border color",    "prefix"=>"",      "name"=>"borderColor",    "type"=> TYPE_COLOR,   "defaultValue"=>"#000000"       ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>STYLE_OBJ,"hint"=>'Chart frame color, as a HTLM color code.'),
          Array("caption"=> "Border radius",   "prefix"=>"",      "name"=>"borderRadius",   "type"=> TYPE_PX,      "defaultValue"=>"0"             ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>STYLE_OBJ |GRAPH_OBJ,"hint"=>'Chart frame border radius, in pixels.'),
          Array("caption"=> "Left Margin",     "prefix"=>"",      "name"=>"marginLeft",     "type"=> TYPE_INT,     "defaultValue"=>"75"            ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>GRAPH_OBJ,"hint"=>'Chart frame inner left margin, in pixels.'),
-         Array("caption"=> "Right Margin",    "prefix"=>"",      "name"=>"marginRight",    "type"=> TYPE_INT,     "defaultValue"=>"20"            ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>GRAPH_OBJ,"hint"=>'Chart frame inner right margin,, in pixels.'),		 
+         Array("caption"=> "Right Margin",    "prefix"=>"",      "name"=>"marginRight",    "type"=> TYPE_INT,     "defaultValue"=>"20"            ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>GRAPH_OBJ,"hint"=>'Chart frame inner right margin,, in pixels.'),
          Array("caption"=> "Title",           "prefix"=>"title", "name"=>"text",           "type"=> TYPE_STRING,  "defaultValue"=>"Title"         ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>TITLE_OBJ,"hint"=>'Chart title.'),
          Array("caption"=> "Bg color"        ,"prefix"=>"",      "name"=>"backgroundColor","type"=> TYPE_COLOR,   "defaultValue"=>"#f0f0f0"       ,"nullable"=>true, "editable"=>true,"index"=>null,"appliesTo"=>GRAPH_OBJ,"hint"=>'Chart frame background color, as a HTLM color code.')
-         		 
+
   );
-  $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "X axis Color",  "prefix"=>""        ,"name"=>"lineColor",    "type"=> TYPE_COLOR,  "defaultValue"=>"#404040"   ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>XAXIS_OBJ ,"hint"=>'X Axis lin2 color'); 
-  $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "LabelsColor",   "prefix"=>"labStyle","name"=>"color",        "type"=> TYPE_COLOR,  "defaultValue"=>"#404040"   ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>XAXISSTYLE_OBJ | YAXISSTYLE_OBJ | TITLESTYLE_OBJ ,"hint"=>'Axis and title color'); 
+  $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "X axis Color",  "prefix"=>""        ,"name"=>"lineColor",    "type"=> TYPE_COLOR,  "defaultValue"=>"#404040"   ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>XAXIS_OBJ ,"hint"=>'X Axis lin2 color');
+  $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "LabelsColor",   "prefix"=>"labStyle","name"=>"color",        "type"=> TYPE_COLOR,  "defaultValue"=>"#404040"   ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>XAXISSTYLE_OBJ | YAXISSTYLE_OBJ | TITLESTYLE_OBJ ,"hint"=>'Axis and title color');
   $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "Navigator",     "prefix"=>"nav",     "name"=>"enabled",      "type"=> TYPE_BOOL,   "defaultValue"=>false       ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>NAVIGATOR_OBJ,"hint"=>'Show chart overview');
   $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "ScrollBar",     "prefix"=>"scrlb",   "name"=>"enabled",      "type"=> TYPE_BOOL,   "defaultValue"=>true        ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>SCROLLBAR_OBJ,"hint"=>'Show chart horizontal scroll bar');
   $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "Range selector","prefix"=>"rgsel",   "name"=>"enabled",      "type"=> TYPE_BOOL,   "defaultValue"=>true        ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>RANGESEL_OBJ,"hint"=>'Show chart Range selector');
   $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "Export button" ,"prefix"=>"expbtn",  "name"=>"enabled",      "type"=> TYPE_BOOL,   "defaultValue"=>false       ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>EXPORTBTN_OBJ,"hint"=>'Show chart export menu');
-  
-  
-  $GRAPH_EDITABLE_VALUES[] = Array("caption"=> "Data sets",         "editable"=>false, "columnBreak" => true,       "appliesTo"=>NOTHING); 
+
+
+  $GRAPH_EDITABLE_VALUES[] = Array("caption"=> "Data sets",         "editable"=>false, "columnBreak" => true,       "appliesTo"=>NOTHING);
   for ($i=0;$i<MAX_DATASRC_PER_GRAPH;$i++)
-  { $GRAPH_EDITABLE_VALUES[]= Array("caption"=>"Data Set ".($i+1),     "editable"=>false,     "columnBreak" => false,         "appliesTo"=>NOTHING);       
-    $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "Description",   "prefix"=>"data",   "name"=>"name",           "type"=> TYPE_STRING,  "defaultValue"=>"Serie $i"        ,"nullable"=>false,"editable"=>true,"index"=>$i    ,"appliesTo"=>SERIE_OBJ,"hint"=>'Data source display name.'); 
+  { $GRAPH_EDITABLE_VALUES[]= Array("caption"=>"Data Set ".($i+1),     "editable"=>false,     "columnBreak" => false,         "appliesTo"=>NOTHING);
+    $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "Description",   "prefix"=>"data",   "name"=>"name",           "type"=> TYPE_STRING,  "defaultValue"=>"Serie $i"        ,"nullable"=>false,"editable"=>true,"index"=>$i    ,"appliesTo"=>SERIE_OBJ,"hint"=>'Data source display name.');
     $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "Data src",      "prefix"=>"data",   "name"=>"datasource",     "type"=> TYPE_DATASRC, "defaultValue"=>null              ,"nullable"=>false,"editable"=>true,"index"=>$i    ,"appliesTo"=>GRAPH_OBJ,"hint"=>'Source of data: Yoctopuce Sensor, relay or AnButton.');
     $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "Color",         "prefix"=>"data",   "name"=>"color",          "type"=> TYPE_COLOR,   "defaultValue"=>$defaultColor[$i] ,"nullable"=>false,"editable"=>true,"index"=>$i    ,"appliesTo"=>SERIE_OBJ,"hint"=>'Chart line color for this source');
     $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "Line width",    "prefix"=>"data",   "name"=>"lineWidth",      "type"=> TYPE_INT,     "defaultValue"=>2                 ,"nullable"=>false,"editable"=>true,"index"=>$i    ,"appliesTo"=>SERIE_OBJ,"hint"=>'Chart line Width for this source');
-    $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "Y axis",        "prefix"=>"data",   "name"=>"yAxis",          "type"=> TYPE_YAXIS,   "defaultValue"=>0                 ,"nullable"=>false,"editable"=>true,"index"=>$i    ,"appliesTo"=>SERIE_OBJ,"hint"=>'Reference Y axis'); 
-    $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "Show max",      "prefix"=>"data",   "name"=>"showmax",        "type"=> TYPE_BOOL,    "defaultValue"=>false             ,"nullable"=>false,"editable"=>true,"index"=>$i    ,"appliesTo"=>MANUAL_APPLY,"hint"=>'Shoes the maximum values chart.');  
-    $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "Show min",      "prefix"=>"data",   "name"=>"showmin",        "type"=> TYPE_BOOL,    "defaultValue"=>false             ,"nullable"=>false,"editable"=>true,"index"=>$i    ,"appliesTo"=>MANUAL_APPLY,"hint"=>'Shoes the minimum values chart.'); 
-  } 
+    $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "Y axis",        "prefix"=>"data",   "name"=>"yAxis",          "type"=> TYPE_YAXIS,   "defaultValue"=>0                 ,"nullable"=>false,"editable"=>true,"index"=>$i    ,"appliesTo"=>SERIE_OBJ,"hint"=>'Reference Y axis');
+    $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "Show max",      "prefix"=>"data",   "name"=>"showmax",        "type"=> TYPE_BOOL,    "defaultValue"=>false             ,"nullable"=>false,"editable"=>true,"index"=>$i    ,"appliesTo"=>MANUAL_APPLY,"hint"=>'Shoes the maximum values chart.');
+    $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "Show min",      "prefix"=>"data",   "name"=>"showmin",        "type"=> TYPE_BOOL,    "defaultValue"=>false             ,"nullable"=>false,"editable"=>true,"index"=>$i    ,"appliesTo"=>MANUAL_APPLY,"hint"=>'Shoes the minimum values chart.');
+  }
 
  $GRAPH_EDITABLE_VALUES[] = Array("caption"=> "Vertical axis",         "editable"=>false, "columnBreak" => true,       "appliesTo"=>NOTHING);
  for ($i=0;$i<MAX_YAXIS_PER_GRAPH;$i++)
-  { $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "Axis ".($i+1),"editable"=>false, "columnBreak" => false,   "appliesTo"=>NOTHING); 
+  { $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "Axis ".($i+1),"editable"=>false, "columnBreak" => false,   "appliesTo"=>NOTHING);
     $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "Title",   "prefix"=>"yAxis",  "name"=>"text",          "type"=> TYPE_STRING,    "defaultValue"=>"Axis ".($i+1)   ,"nullable"=>false, "editable"=>true, "index"=>$i, "appliesTo"=>YAXISTITLE_OBJ,"hint"=>'Axis title');
     $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "Min",     "prefix"=>"yAxis",  "name"=>"min",           "type"=> TYPE_INT,       "defaultValue"=>NULL             ,"nullable"=>true,  "editable"=>true, "index"=>$i, "appliesTo"=>YAXIS_OBJ,"hint"=>'Axis start value , leave blank for automatic selection');
     $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "Max",     "prefix"=>"yAxis",  "name"=>"max",           "type"=> TYPE_INT,       "defaultValue"=>NULL             ,"nullable"=>true,  "editable"=>true, "index"=>$i, "appliesTo"=>YAXIS_OBJ,"hint"=>'Axis end value , leave blank for automatic selection');
     $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "Position","prefix"=>"yAxis",  "name"=>"opposite",      "type"=> TYPE_LEFTRIGHT, "defaultValue"=>0                ,"nullable"=>false, "editable"=>true, "index"=>$i, "appliesTo"=>YAXIS_OBJ,"hint"=>'Axis side');
-    $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "Line color","prefix"=>"yAxis","name"=>"lineColor",      "type"=> TYPE_COLOR,    "defaultValue"=>"#404040"        ,"nullable"=>true,  "editable"=>true, "index"=>$i,"appliesTo"=>YAXIS_OBJ,"hint"=>'Y axis vertical line color.');                  
-    $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "Grid color","prefix"=>"yAxis","name"=>"gridLineColor", "type"=> TYPE_COLOR,     "defaultValue"=>"#D0D0D0"        ,"nullable"=>true,  "editable"=>true, "index"=>$i,"appliesTo"=>YAXIS_OBJ,"hint"=>'Horizontal grid lines color.');               
+    $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "Line color","prefix"=>"yAxis","name"=>"lineColor",      "type"=> TYPE_COLOR,    "defaultValue"=>"#404040"        ,"nullable"=>true,  "editable"=>true, "index"=>$i,"appliesTo"=>YAXIS_OBJ,"hint"=>'Y axis vertical line color.');
+    $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "Grid color","prefix"=>"yAxis","name"=>"gridLineColor", "type"=> TYPE_COLOR,     "defaultValue"=>"#D0D0D0"        ,"nullable"=>true,  "editable"=>true, "index"=>$i,"appliesTo"=>YAXIS_OBJ,"hint"=>'Horizontal grid lines color.');
     $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "Visible", "prefix"=>"yAxis", "name"=>"visible",        "type"=> TYPE_BOOL,      "defaultValue"=>$i>0?false:true  ,"nullable"=>false, "editable"=>true, "index"=>$i, "appliesTo"=>YAXIS_OBJ,"hint"=>'Show/hide axis');
-    
-  }	  
+
+  }
 
   $GRAPH_EDITABLE_VALUES[] = Array("caption"=> "Horizontal bands",         "editable"=>false, "columnBreak" => true,       "appliesTo"=>NOTHING);
  for ($i=0;$i<MAX_YBAND_PER_GRAPH;$i++)
-  { $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "Band  ".($i+1),"editable"=>false, "columnBreak" => false,   "appliesTo"=>NOTHING); 
-    $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "Color",     "prefix"=>"yBand",  "name"=>"color",       "type"=> TYPE_COLOR,    "defaultValue"=>NULL    ,"nullable"=>true,  "editable"=>true, "index"=>$i,"appliesTo"=>YBAND_OBJ,"hint"=>"Horizontal band $i color, applies to first Y axis only, leave blank to disable");                  
+  { $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "Band  ".($i+1),"editable"=>false, "columnBreak" => false,   "appliesTo"=>NOTHING);
+    $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "Color",     "prefix"=>"yBand",  "name"=>"color",       "type"=> TYPE_COLOR,    "defaultValue"=>NULL    ,"nullable"=>true,  "editable"=>true, "index"=>$i,"appliesTo"=>YBAND_OBJ,"hint"=>"Horizontal band $i color, applies to first Y axis only, leave blank to disable");
     $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "Start",     "prefix"=>"yBand",  "name"=>"from",        "type"=> TYPE_FLOAT,       "defaultValue"=>0      ,"nullable"=>false,  "editable"=>true, "index"=>$i, "appliesTo"=>YBAND_OBJ,"hint"=>"Band $i lower edge");
     $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "End",       "prefix"=>"yBand",  "name"=>"to",          "type"=> TYPE_FLOAT,       "defaultValue"=>0     ,"nullable"=>false,  "editable"=>true, "index"=>$i, "appliesTo"=>YBAND_OBJ,"hint"=>"Band $i upper edge");
-  }	  
+  }
 
- 
-  $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "Legend",          "editable"=>false,    "columnBreak" => true,  "appliesTo"=>NOTHING); 
+
+  $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "Legend",          "editable"=>false,    "columnBreak" => true,  "appliesTo"=>NOTHING);
   $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "Enabled",         "prefix"=>"legend",   "name"=>"enabled",        "type"=> TYPE_BOOL,   "defaultValue"=>false       ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>LEGEND_OBJ,"hint"=>'Show/hide legend.');
   $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "Hrz. Align",      "prefix"=>"legend",   "name"=>"align",          "type"=> TYPE_HALIGN, "defaultValue"=>"right"     ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>LEGEND_OBJ,"hint"=>'Legend left/right alignment.');
   $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "Vert. align",     "prefix"=>"legend",   "name"=>"verticalAlign",  "type"=> TYPE_VALIGN, "defaultValue"=>"bottom"    ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>LEGEND_OBJ,"hint"=>'Legend top/bottom alignment.');
   $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "X offset",        "prefix"=>"legend",   "name"=>"x",              "type"=> TYPE_INT,    "defaultValue"=>0           ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>LEGEND_OBJ,"hint"=>'Legend position horizontal offset, in pixels.');
   $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "Y offset",        "prefix"=>"legend",   "name"=>"y",              "type"=> TYPE_INT,    "defaultValue"=>0           ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>LEGEND_OBJ,"hint"=>'Legend position vertical offset, in pixels.');
   $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "Layout",          "prefix"=>"legend",   "name"=>"layout",         "type"=> TYPE_LAYOUT, "defaultValue"=>"vertical"  ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>LEGEND_OBJ,"hint"=>'Data sources names disposition.');
-  $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "Floating",        "prefix"=>"legend",   "name"=>"floating",       "type"=> TYPE_BOOL   ,"defaultValue"=>"true"      ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>LEGEND_OBJ,"hint"=>'Allows the legend to float over the graph elements');  
-  $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "Border Width",    "prefix"=>"legend",   "name"=>"borderWidth",    "type"=> TYPE_INT,     "defaultValue"=>1          ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>LEGEND_OBJ,"hint"=>'Legend border width.'); 
+  $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "Floating",        "prefix"=>"legend",   "name"=>"floating",       "type"=> TYPE_BOOL   ,"defaultValue"=>"true"      ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>LEGEND_OBJ,"hint"=>'Allows the legend to float over the graph elements');
+  $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "Border Width",    "prefix"=>"legend",   "name"=>"borderWidth",    "type"=> TYPE_INT,     "defaultValue"=>1          ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>LEGEND_OBJ,"hint"=>'Legend border width.');
   $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "Border Radius",   "prefix"=>"legend",   "name"=>"borderRadius",   "type"=> TYPE_PX,     "defaultValue"=>5           ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>LEGEND_OBJ,"hint"=>'Legend corder radius.');
-  $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "Border Color",    "prefix"=>"legend",   "name"=>"borderColor",    "type"=> TYPE_COLOR,   "defaultValue"=>"#000000"  ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>LEGEND_OBJ,"hint"=>'Legend text color, as a HTLM color code.'); 
-  $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "Bg Color" ,       "prefix"=>"legend",   "name"=>"backgroundColor","type"=> TYPE_COLOR,   "defaultValue"=>"#FFFFFF"  ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>LEGEND_OBJ,"hint"=>'Legend background, as a HTLM color code.'); 
+  $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "Border Color",    "prefix"=>"legend",   "name"=>"borderColor",    "type"=> TYPE_COLOR,   "defaultValue"=>"#000000"  ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>LEGEND_OBJ,"hint"=>'Legend text color, as a HTLM color code.');
+  $GRAPH_EDITABLE_VALUES[]=Array("caption"=> "Bg Color" ,       "prefix"=>"legend",   "name"=>"backgroundColor","type"=> TYPE_COLOR,   "defaultValue"=>"#FFFFFF"  ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>LEGEND_OBJ,"hint"=>'Legend background, as a HTLM color code.');
 
-  
-  
+
+
   function editMode()
-  { 
+  {
     return array_key_exists('edit',$_GET);
   }
   function editPartstart()
   {  if (!editMode()) ob_start();
   }
-  
+
   function editPartEnd()
   {  if (!editMode()) ob_end_clean();
   }
-  
+
 ?>
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
 <HTML>
@@ -1286,8 +1286,8 @@ A.edit_button:link  ,  A.edit_button:visited  ,    A.edit_button:active
   padding-left:3px;
   padding-right:3px;
   margin-left:5px;
- 
-  
+
+
 }
 
 A.edit_button:hover
@@ -1314,13 +1314,13 @@ input
 
 DIV.grapheditor
 { position : absolute;
-  
+
   top:10%;
   height:80%;
   width:300px;
   background-color:#FFFFFF;
   border:2px solid #FF0000;
-  border-top-right-radius: 10px; 
+  border-top-right-radius: 10px;
   rgba(0, 0, 0, 0.5);
   overflow:hidden;
   z-index:1000;
@@ -1331,8 +1331,8 @@ div.settingsWindow
 { position : absolute;
   background-color:#FFFFFF;
   border:2px solid #FF0000;
-  border-radius: 10px; 
-  border-bottom-right-radius: 10px; 
+  border-radius: 10px;
+  border-bottom-right-radius: 10px;
   box-shadow: 10px 10px 5px rgba(0, 0, 0, 0.1);
   overflow:hidden;
   z-index:1000;
@@ -1376,12 +1376,12 @@ DIV.edit_footer
 
 DIV.propertylist
 { position:absolute;
-  
+
   top:25px;
   bottom:25px;
   left:0px;
   right:0px;
-  
+
   overflow-y:scroll;
   overflow-x:hidden;
   border:0px solid blue;
@@ -1394,26 +1394,26 @@ div.expandecolapse
   padding: 1px 4px 0px 4px;
   cursor:pointer;
   background-color:#FFd0d0;
-  
-  
+
+
 }
 
 DIV.sideswitcher
 { position:absolute;
-  
+
   top:0px;
   color:white;
   font-weight:bolder;
 }
 
-	
+
 
 DIV.header
 { border:0px solid black;
   background-color:#FF8080;
   padding-bottom:4px;
   padding-top:4px;
-  
+
 }
 
 DIV.ErrorDiv , DIV.NotifyDiv
@@ -1422,7 +1422,7 @@ DIV.ErrorDiv , DIV.NotifyDiv
   padding-right:5px;
   padding-bottom:5px;
   padding-top:5px;
-  padding-left:5px;  
+  padding-left:5px;
   margin-top:5px;
   margin-bottom:5px;
   border-radius:5px;
@@ -1431,10 +1431,10 @@ DIV.ErrorDiv , DIV.NotifyDiv
 }
 
 DIV.ErrorDiv
-{ 
+{
   border:2px solid red;
   background-color:#FFE0E0;
-  
+
 }
 
 DIV.NotifyDiv
@@ -1455,7 +1455,7 @@ A.button
   margin-right:5px;
 }
 
-#MainMenu, #MainMenu ul 
+#MainMenu, #MainMenu ul
 { padding: 0;
   margin: 0;
   margin-right:20px;
@@ -1476,10 +1476,10 @@ A.button
   z-index:100000;
 }
 
-#MainMenu li 
+#MainMenu li
 { float: left;
   position: relative;
-  
+
 }
 
 .mainMenuItem
@@ -1506,14 +1506,14 @@ A.button
   border-bottom-left-radius:5px;
   margin-bottom:10px;
   z-index:1000;
-  
+
 }
 
 .subMenu li
 { width: 100%;
   white-space:nowrap;
   line-height:24px;
- 
+
   padding-left:8px;
 }
 
@@ -1521,31 +1521,31 @@ A.button
 { text-decoration: none;
 }
 
-#MainMenu  A:link 
+#MainMenu  A:link
  { color :  #FFFFFF; }
 
-#MainMenu  A:visited 
+#MainMenu  A:visited
  { color :  #FFFFFF; }
- 
 
-#MainMenu  A:hover 
+
+#MainMenu  A:hover
  { color : #800000; }
- 
-#MainMenu A:active 
+
+#MainMenu A:active
  { color : #FFFFFF;}
 
-#MainMenu li>ul 
+#MainMenu li>ul
  {  top: auto;
    left: auto;
 }
 
-#MainMenu li:hover ul, li.over ul 
-{ 
+#MainMenu li:hover ul, li.over ul
+{
   display: block;
 }
 
-TABLE.rawDataTable 
-{ 
+TABLE.rawDataTable
+{
   white-space:nowrap;
   margin-left:0px;
   margin-right:0px;
@@ -1553,7 +1553,7 @@ TABLE.rawDataTable
 
 TABLE.rawDataTable TH
 { background-color: #e0e0e0;
-  border: 1px solid #404040; 
+  border: 1px solid #404040;
   padding-left:5px;
   padding-right:5px;
 }
@@ -1574,7 +1574,7 @@ TD.mi
   text-align:right;
   padding-right:3px;
   padding-left:5px;
-  
+
 }
 TD.cu
 { background-color:#f0f0f0;
@@ -1659,11 +1659,10 @@ DIV.fileDetailsContents
 <?php editPartEnd(); ?>
 
 </style>
-
-<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
-<script src="http://code.highcharts.com/stock/highstock.js"></script>
-<script src="http://code.highcharts.com/modules/exporting.js"></script>
-<script src="http://code.highcharts.com/modules/offline-exporting.js"></script>
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
+<script src="//code.highcharts.com/stock/highstock.js"></script>
+<script src="//code.highcharts.com/modules/exporting.js"></script>
+<script src="//code.highcharts.com/modules/offline-exporting.js"></script>
 <script>
 var GRAPHELMT =0;
 var DECOELMT =1;
@@ -1671,21 +1670,21 @@ var feed='<?php
 print($FEED);
 ?>';
 var widgets=Array();
-var now = new Date(); 
+var now = new Date();
 var lastestValues= Array();
-var refreshEnabled = true; 
+var refreshEnabled = true;
 var decoRefreshTimer=null;
 var appReady =false;
- 
+
 
 Highcharts.setOptions({global: {timezoneOffset: now.getTimezoneOffset() }});
 
 function self()
-{ var url = window.location.href; 
+{ var url = window.location.href;
   var p= url.indexOf('?');
   if (p>0) url=url.substring(0,p);
   return url;
-	
+
 }
 
 function hideNotice()
@@ -1707,7 +1706,7 @@ function NewWidgetName(str_prefix)
 		{ ok =false;
 	      n++;
 		  id=str_prefix+n;
-		  
+
 		}
 	}
    } while(!ok)
@@ -1762,50 +1761,50 @@ function printDefaultObjectValue($EDITABLE_VALUES)
         }
 }
 ?>
- 
+
 function DefaultWidget(int_type,int_index)
-{ var maxZindex = 0; 
+{ var maxZindex = 0;
   for (i=0;i<widgets.length;i++)
    if (widgets[i].zIndex>maxZindex) maxZindex=widgets[i].zIndex+1;
 
-  switch (int_type) 
+  switch (int_type)
   { case GRAPHELMT:
-	  return { 
+	  return {
 		"type" : int_type,
 		"id"   : NewWidgetName("Graph"),
 		"_dataSrcHasChanged" : false,
 <?php
 printDefaultObjectValue($GRAPH_EDITABLE_VALUES);
-?>    
+?>
 	   "_data":  new Array(<?php
 for ($i = 0; $i < MAX_DATASRC_PER_GRAPH; $i++)
     printf("%s{'Tmin':null,'Tmax':null,'minBuffer':null,'maxBuffer':null,'curBuffer':null }", $i > 0 ? ',' : '');
 ?>),
 	    "_originalData" : new Array(),
 		"_refreshTimer":null
-		 };  
+		 };
     case DECOELMT:
-      return { 
+      return {
 		"type" : int_type,
 		"id"   : NewWidgetName("Deco"),
 		"_dataSrcHasChanged" : false,
-<?php printDefaultObjectValue($DECO_EDITABLE_VALUES);?>  
-        "_originalData" : new Array(),  
-	    };  	 
-  }	 	
-  throw "invalid int_type"; 	
+<?php printDefaultObjectValue($DECO_EDITABLE_VALUES);?>
+        "_originalData" : new Array(),
+	    };
+  }
+  throw "invalid int_type";
 }
 <?php editPartStart(); ?>
 function backupWidgetData(widgetData)
   { for(var key in widgetData)
 	  if (key.charAt(0)!='_')  widgetData._originalData[key] = widgetData[key];
   }
-  
+
 function restoreWidgetData(widgetData)
   { for(var key in widgetData._originalData)
 	  widgetData[key] = widgetData._originalData[key];
   }
-  
+
 
 function htmlEncode( html ) {
 	var res = '';
@@ -1815,7 +1814,7 @@ function htmlEncode( html ) {
 	   else if (c==34) res=res+"&#34;"
 	   else if (c>31)	res=res+ html.charAt(i);
 	   else if (c==10)	res=res+ '<bR>';
-	   
+
 	 }
     return res;
 };
@@ -1827,14 +1826,14 @@ function htmlDecode( st ) {
 	while (st.indexOf('<bR>')>=0)
 	{st=st.replace("<bR>",String.fromCharCode(10));
 	}
-	
+
 	var  start =0;
 	var  s =-1;
 	do
 	 { var s =  st.substring(start).indexOf('&#');
 	   if (s>=0)
 	   { s= s+start;
-        
+
          var e = st.substring(s+2,s+7).indexOf(';');
 	     if (e>=0)
 		 { start=e+1;
@@ -1843,7 +1842,7 @@ function htmlDecode( st ) {
 		   { st = st.substring(0,s)+String.fromCharCode(code)+st.substring(e+s+3);
 	       }
 		 } else s=-1;
-	   }	   
+	   }
      }
 	while (s>=0)
 
@@ -1853,18 +1852,18 @@ function htmlDecode( st ) {
 
 <?php editPartStart(); ?>
 function getConfigData()
-{ var iniData=''; 
+{ var iniData='';
   for (var i=0;i<widgets.length;i++)
   { iniData+='[Widget'+i+']\n';
-    for (var key in widgets[i]) 
-      if (key.charAt(0)!='_')	
+    for (var key in widgets[i])
+      if (key.charAt(0)!='_')
 	  { if (widgets[i][key]==null) iniData += key+'=null\n';
          else iniData += key+'="'+htmlEncode(widgets[i][key].toString())+'"\n';
-  
+
         //if (key=='innerHTML') iniData += key+'="'+htmlEncode(widgets[i][key])+'"\n';
 	    //   else iniData += key+'="'+widgets[i][key]+'"\n';
-	  } 
-	  
+	  }
+
   }
   var value = getBgType();
   iniData +='[background]\n'
@@ -1878,25 +1877,25 @@ function getConfigData()
   iniData +='[callBackFreq]\n'
           +'freqEnabled="'+document.getElementById('freqEnabled').checked+'"\n'
           +'freqMin="'+parseInt(document.getElementById('freqMin').value)+'"\n'
-          +'freqMax="'+parseInt(document.getElementById('freqMax').value)+'"\n'	
-          +'freqWait="'+parseInt(document.getElementById('freqWait').value)+'"\n';	
+          +'freqMax="'+parseInt(document.getElementById('freqMax').value)+'"\n'
+          +'freqWait="'+parseInt(document.getElementById('freqWait').value)+'"\n';
   iniData +='[wakeUpSettings]\n'
           +'wakeUpEnabled="'+document.getElementById('wakeUpEnabled').checked+'"\n'
           +'wakeUpAutoSleep="'+document.getElementById('wakeUpAutoSleep').checked+'"\n'
           +'wakeUpSleepAfter="'+parseInt(document.getElementById('wakeUpSleepAfter').value)+'"\n'
-          +'wakeUpDaysWeek="'+parseInt(document.getElementById('wakeUpDaysWeek').value)+'"\n'	
-          +'wakeUpDaysMonth="'+parseInt(document.getElementById('wakeUpDaysMonth').value)+'"\n'			  
-	      +'wakeUpMonths="'+parseInt(document.getElementById('wakeUpMonths').value)+'"\n'		  
-	      +'wakeUpHours="'+parseInt(document.getElementById('wakeUpHours').value)+'"\n'		  
-	      +'wakeUpMinutesA="'+parseInt(document.getElementById('wakeUpMinutesA').value)+'"\n'			  
-	      +'wakeUpMinutesB="'+parseInt(document.getElementById('wakeUpMinutesB').value)+'"\n';		
+          +'wakeUpDaysWeek="'+parseInt(document.getElementById('wakeUpDaysWeek').value)+'"\n'
+          +'wakeUpDaysMonth="'+parseInt(document.getElementById('wakeUpDaysMonth').value)+'"\n'
+	      +'wakeUpMonths="'+parseInt(document.getElementById('wakeUpMonths').value)+'"\n'
+	      +'wakeUpHours="'+parseInt(document.getElementById('wakeUpHours').value)+'"\n'
+	      +'wakeUpMinutesA="'+parseInt(document.getElementById('wakeUpMinutesA').value)+'"\n'
+	      +'wakeUpMinutesB="'+parseInt(document.getElementById('wakeUpMinutesB').value)+'"\n';
   iniData +='[cleanUpSettings]\n'
           +'cleanUpEnabled="'+document.getElementById('cleanUpEnabled').checked+'"\n'
 	      +'dataTrimSize="'+parseInt(document.getElementById('dataTrimSize').value)+'"\n'
           +'dataMaxSize="'+parseInt(document.getElementById('dataMaxSize').value)+'"\n';
-        			 
-		  
-  return iniData;	
+
+
+  return iniData;
 }
 
 
@@ -1905,11 +1904,11 @@ function getConfigData()
 <?php
 function printObjectInitCode($graphObjectID)
   {
-    global $GRAPH_EDITABLE_VALUES;   
+    global $GRAPH_EDITABLE_VALUES;
     $indent = '               ';
     $first  = '';
     for ($i = 0; $i < sizeof($GRAPH_EDITABLE_VALUES); $i++)
-      if ($GRAPH_EDITABLE_VALUES[$i]['appliesTo'] & $graphObjectID) 
+      if ($GRAPH_EDITABLE_VALUES[$i]['appliesTo'] & $graphObjectID)
        {
         $name   = $GRAPH_EDITABLE_VALUES[$i]['name'];
         $prefix = $GRAPH_EDITABLE_VALUES[$i]['prefix'];
@@ -1933,14 +1932,14 @@ function printObjectInitCode($graphObjectID)
                 break;
         }
       $first = ',';
-    }      
-  }   
+    }
+  }
 ?>
 
 function newGraph(index)
-  {  
+  {
      return  new Highcharts.StockChart({
-        chart :     { type: 'line', zoomType: 'x', 
+        chart :     { type: 'line', zoomType: 'x',
 		animation :false,
 		spacingBottom: 5,
         spacingTop: 5,
@@ -1953,82 +1952,82 @@ function newGraph(index)
         width: null,
         height: null,
 		renderTo: widgets[index].id,
-        <?php printObjectInitCode(GRAPH_OBJ); ?>			
+        <?php printObjectInitCode(GRAPH_OBJ); ?>
 
 		},
-       
+
 	    title: {<?php printObjectInitCode(TITLE_OBJ);?>,
                 style:{<?php printObjectInitCode(TITLESTYLE_OBJ);?>}
         },
         legend: {<?php printObjectInitCode(LEGEND_OBJ);?>},
         navigator: {baseSeries: 1,  <?php printObjectInitCode(NAVIGATOR_OBJ);?>},
-        scrollbar: {liveRedraw: true,    <?php printObjectInitCode(SCROLLBAR_OBJ);?>},             
-                         
-       
+        scrollbar: {liveRedraw: true,    <?php printObjectInitCode(SCROLLBAR_OBJ);?>},
+
+
 		credits: { enabled: false},
         plotOptions:{series: { animation: false}},
 		xAxis : { minRange: 60 * 1000,
-		          // min : <?php print((time() - 3 * 86400) * 1000);?>, 
-                  // max :	<?php print(time() * 1000); ?>,			  
+		          // min : <?php print((time() - 3 * 86400) * 1000);?>,
+                  // max :	<?php print(time() * 1000); ?>,
 		          type: 'datetime',
                   ordinal: false,
                   <?php printObjectInitCode(XAXIS_OBJ);?>,
                   labels:{style: { <?php printObjectInitCode(XAXISSTYLE_OBJ);?>}}
-                  
-               
-                
+
+
+
                   },
-		
+
         rangeSelector: {
-            buttons: [{ count:1, type:'hour', text: ' hour ' }, 
-                      { count:1, type:'day', text: ' day ' }, 
-                      { count:7, type:'day', text: ' week ' }, 
-                      { count:1, type:'month', text: ' month ' }, 
+            buttons: [{ count:1, type:'hour', text: ' hour ' },
+                      { count:1, type:'day', text: ' day ' },
+                      { count:7, type:'day', text: ' week ' },
+                      { count:1, type:'month', text: ' month ' },
                       { type:'all', text: 'All' }],
             selected: 2,
              <?php printObjectInitCode(RANGESEL_OBJ);?>
          },
-						
-        
+
+
         navigation: {
             buttonOptions: {
                <?php printObjectInitCode(EXPORTBTN_OBJ);?>
         } },
-        
-		
+
+
 		yAxis: [
-        
-      
+
+
 <?php
 $indent = "           ";
 for ($j = 0; $j < MAX_YAXIS_PER_GRAPH; $j++) {
    if ($j > 0)
         print(",\n");
-    
+
    if ($j==0) //  bands  on the 1srt y axis onbly.
     { Printf("{$indent}{plotBands: [\n");
       for ($k=0;$k<MAX_YBAND_PER_GRAPH;$k++)
        {  $firstInList = true;
           if ($k>0) print(",");
-          print("{$indent}{"); 
+          print("{$indent}{");
           for ($i = 0; $i < sizeof($GRAPH_EDITABLE_VALUES); $i++)
-          if ($GRAPH_EDITABLE_VALUES[$i]['appliesTo'] & YBAND_OBJ)  
-             if ($GRAPH_EDITABLE_VALUES[$i]['index'] ==$k)              
+          if ($GRAPH_EDITABLE_VALUES[$i]['appliesTo'] & YBAND_OBJ)
+             if ($GRAPH_EDITABLE_VALUES[$i]['index'] ==$k)
                {  if (!$firstInList)  print(",\n{$indent}  ");
                   $firstInList = false;
                   $name        = $GRAPH_EDITABLE_VALUES[$i]['name'];
                   $prefix      = $GRAPH_EDITABLE_VALUES[$i]['prefix'];
                   if ($prefix != '') $prefix .= '_';
                   Printf("%s: widgets[index].%s%s_%d", $name, $prefix, $name, $k);
-                       
+
                }
-          print("\n{$indent}}\n");        
+          print("\n{$indent}}\n");
        }
        print("],\n");
-    } else print('{');       
-             
-    
-  
+    } else print('{');
+
+
+
     Printf("{$indent}title:{");
     $firstInList = true;
     for ($i = 0; $i < sizeof($GRAPH_EDITABLE_VALUES); $i++)
@@ -2059,18 +2058,18 @@ for ($j = 0; $j < MAX_YAXIS_PER_GRAPH; $j++) {
                         break;
                 }
             }
-       
-                
+
+
     }
     print(",\n   style:{");
     printObjectInitCode(YAXISSTYLE_OBJ);
     print("}");
-   
+
     print("},\n   labels:{style:{");
     printObjectInitCode(YAXISSTYLE_OBJ);
     print("}}");
-  
-   
+
+
     for ($i = 0; $i < sizeof($GRAPH_EDITABLE_VALUES); $i++)
         if ($GRAPH_EDITABLE_VALUES[$i]['appliesTo'] & YAXIS_OBJ)
             if ($GRAPH_EDITABLE_VALUES[$i]['index'] == $j) {
@@ -2103,9 +2102,9 @@ for ($j = 0; $j < MAX_YAXIS_PER_GRAPH; $j++) {
     Print('}');
 }
 Print("{$indent}\n],\n");
-?>		
-		
-		
+?>
+
+
         series : [
 <?php
 $showmax = 'false';
@@ -2144,88 +2143,88 @@ for ($j = 0; $j < MAX_DATASRC_PER_GRAPH; $j++) {
     if ($j < MAX_DATASRC_PER_GRAPH - 1)
         print(",\n");
 }
-?>        ]    
+?>        ]
     });
-	
+
   }
-  
+
 function findwidgetIndex(id)
 {  var index = -1;
-   
+
    for (var i=0;i<widgets.length;i++)
 	 if (widgets[i].id==id) index=i;
   return index;
-}	
+}
 
 function startDecoRefresh()
  { decoRefreshTimer=null;
    document.getElementById('decoRefreshFrame').src=self()+'?cmd=getlastestdata&feed='+feed;
-   
- }	
- 
+
+ }
+
 function updateDecoValue(data)
 { for (var i=0;i<data.length;i++)
 	{  updateLastValue(data[i][0],data[i][1], data[i][2],data[i][3]);
 	}
 
   if (refreshEnabled) initDecoRefreshTimer();
-}	
+}
 
 function  initDecoRefreshTimer()
  { if  (decoRefreshTimer==null)
-     decoRefreshTimer=setTimeout(function() {startDecoRefresh(); }, <?php print (PHPDECOREFRESHDELAY);?>); 
+     decoRefreshTimer=setTimeout(function() {startDecoRefresh(); }, <?php print (PHPDECOREFRESHDELAY);?>);
  }
 
-<?php editPartStart(); ?>  
+<?php editPartStart(); ?>
 function deleteWidget(id)
-  { 
+  {
 	var index=  findwidgetIndex(id);
 	if (index<0) return;
-  
+
     if (!confirm('Do you really want to delete this widget?')) return;
-  
+
     var div =  document.getElementById(widgets[index].id);
     div.parentElement.removeChild(div);
 	var div =  document.getElementById(widgets[index].id+"ctrl");
-    div.parentElement.removeChild(div); 
-	
+    div.parentElement.removeChild(div);
+
     widgets.splice(index,1);
     saveAll();
     refreshEditSubMenu();
-  }	
- 
+  }
+
 function stopAllRefreshs()
- { refreshEnabled = false; 
+ { refreshEnabled = false;
    stopDecoRefreshTimer();
    for (var i=0;i<widgets.length;i++)
 	 if  (widgets[i].type==GRAPHELMT)
-      stopGraphRefreshTimer(widgets[i]); 
+      stopGraphRefreshTimer(widgets[i]);
  }
- 
 
- 
- 
 
- 
+
+
+
+
 function restoreAllRefreshs()
- {  refreshEnabled = true; 
+ {  refreshEnabled = true;
     initDecoRefreshTimer();
     for (var i=0;i<widgets.length;i++)
 	 if  (widgets[i].type==GRAPHELMT)
-        initRefreshGraphData( widgets[i],-1); 
- }	
-  
+        initRefreshGraphData( widgets[i],-1);
+ }
+
 function stopDecoRefreshTimer()
 {  if (decoRefreshTimer)   clearTimeout(decoRefreshTimer);
    decoRefreshTimer =null;
 }
- 
-	
+
+
 <?php editPartEnd(); ?>
 
 
 function stopGraphRefreshTimer(widget)
-{ if (widgets['_refreshTimer']) 
+{ if (widgets['_refreshTimer'])
 	{ clearTimeout(widgets['_refreshTimer']);
       widget['_refreshTimer']=null;
 	}
@@ -2244,43 +2243,43 @@ function CreateWidget(index,widgetType)
   newdiv.style.paddinRight= "0px";
   newdiv.style.paddingTop= "0px";
   newdiv.style.paddingBottom= "0px";
-  newdiv.style.overflow = "hidden";  
+  newdiv.style.overflow = "hidden";
   newdiv.style.border= "1px solid #f0f0f0";
-  newdiv.style.Zindex= widgets[index].zindex;  
-  document.body.appendChild(newdiv);   
+  newdiv.style.Zindex= widgets[index].zindex;
+  document.body.appendChild(newdiv);
   applyDivProperties(newdiv,widgets[index]);
   switch (widgetType)
   {  case  GRAPHELMT:
        widgets[index]["_chart"] = newGraph(index);
 	   break;
-     case  DECOELMT:  
+     case  DECOELMT:
 	   newdiv.InnerHTML='Hello world!';
 	   break;
   }
-  
+
   var ctrldiv = document.createElement('div');
   ctrldiv.setAttribute('id',  widgets[index].id+'ctrl');
   ctrldiv.style.position= "absolute";
   ctrldiv.style.paddingLeft= "10px";
-  ctrldiv.style.paddingTop= "10px"; 
-  ctrldiv.style.border= "0px solid #f0f0f0"; 
-  document.body.appendChild(ctrldiv); 
-  ctrldiv.innerHTML = 
+  ctrldiv.style.paddingTop= "10px";
+  ctrldiv.style.border= "0px solid #f0f0f0";
+  document.body.appendChild(ctrldiv);
+  ctrldiv.innerHTML =
    <?php editPartStart(); ?>
           '<a class="button" name="UICtrl" href="javascript:editWidget(\''+widgets[index].id+'\')">Edit</A>'+
           '<a class="button" name="UICtrl" href="javascript:deleteWidget(\''+widgets[index].id+'\')">Delete</A>'+
-   <?php editPartEnd(); ?>		  
-          '<iframe  id="'+widgets[index].id+'frame"style="display:none" ></iframe>' ; 
-  applyCtrlDivProperties(newdiv,ctrldiv); 
+   <?php editPartEnd(); ?>
+          '<iframe  id="'+widgets[index].id+'frame"style="display:none" ></iframe>' ;
+  applyCtrlDivProperties(newdiv,ctrldiv);
   if (widgetType==GRAPHELMT)
   { stopGraphRefreshTimer(widgets[index]);
-    if(refreshEnabled) widgets[index]['_refreshTimer']=setTimeout(function() {initRefreshGraphData( widgets[index],-1); },100);	
+    if(refreshEnabled) widgets[index]['_refreshTimer']=setTimeout(function() {initRefreshGraphData( widgets[index],-1); },100);
   }
 }
 
 function updateDone(id)
  { for (var i=0;i<widgets.length;i++)
-    if (widgets[i].id==id) 
+    if (widgets[i].id==id)
 	 { if (widgets[i]['_needUpdate'])
 		 { for (j=0;j<<?php
 print(MAX_DATASRC_PER_GRAPH);
@@ -2291,27 +2290,27 @@ print(MAX_DATASRC_PER_GRAPH);
  	        }
 	       widgets[i]['_chart'].redraw();
 	     }
-	  stopGraphRefreshTimer(widgets[i]);	 
+	  stopGraphRefreshTimer(widgets[i]);
 	  if(refreshEnabled) setTimeout(function() {initRefreshGraphData( widgets[i],-1); },2500);
 	  return;
-	 }	
+	 }
  }
 
 
 function updateLastValue(srcname,timestamp, value, unit)
  {if (!lastestValues[srcname])
     { lastestValues[srcname]= {"timestamp":0,"value":0.0,"unit":""};
-    }	   
+    }
    if (lastestValues[srcname].timestamp<timestamp)
     { lastestValues[srcname].timestamp=timestamp;
       lastestValues[srcname].value=value;
       lastestValues[srcname].unit=unit;
 	  refreshDecoValues(srcname);
-    }	
+    }
  }
- 
 
- 
+
+
 function updateGraph(id,serieIndex,start,minData,maxData,curData,precision,unit)
  { var chart=null;
    var  data=null;
@@ -2319,60 +2318,60 @@ function updateGraph(id,serieIndex,start,minData,maxData,curData,precision,unit)
    firstRefresh=false;
    var widgetsIndex=-1;
    for (var i=0;i<widgets.length;i++)
-	if (widgets[i].id==id) 
+	if (widgets[i].id==id)
 	  { chart= widgets[i]["_chart"];
         data = widgets[i]["_data"][serieIndex];
 		widgetsIndex=i;
 		widgets[i]['_needUpdate']=true;
-	  }   
+	  }
    var Tmin = curData[0][0]+start;
-   var Tmax = curData[curData.length-1][0]+start;  
+   var Tmax = curData[curData.length-1][0]+start;
    for (var i=0;i<curData.length;i++)
    { curData[i][0] = (curData[i][0]+start)*1000;
      maxData[i][0] = (maxData[i][0]+start)*1000;
-     minData[i][0] = (minData[i][0]+start)*1000; 
-   }  
+     minData[i][0] = (minData[i][0]+start)*1000;
+   }
    var i =  serieIndex*3;
-   if (data.Tmin==null) 
+   if (data.Tmin==null)
      { data.Tmin = Tmin;
        data.Tmax = Tmax;
 	   data.min = minData;
 	   data.max = maxData;
 	   data.cur = curData;
 	 }
-   else 
-    {  if (data.Tmin>Tmin) 
+   else
+    {  if (data.Tmin>Tmin)
 		{data.Tmin=Tmin;
          data.min = minData.concat(data.min);
 	     data.max = maxData.concat(data.max);
 	     data.cur = curData.concat(data.cur);
 	    }
 		else
-	   if (data.Tmax<Tmax) 
+	   if (data.Tmax<Tmax)
 	   { data.Tmax=Tmax;
  	     data.min  = data.min.concat(minData);
 	     data.max = data.max.concat(maxData);
 	     data.cur = data.cur.concat(curData);
 	   }
 	}
-   var srcname = widgets[widgetsIndex]['data_datasource_'+serieIndex];	 
+   var srcname = widgets[widgetsIndex]['data_datasource_'+serieIndex];
    updateLastValue(srcname,Tmax, curData[curData.length-1][1],unit);
-   	   
+
 
   if (firstRefresh)
   { chart.series[serieIndex*3].update({"tooltip":{"valueDecimals":precision,"valueSuffix":" "+unit}});
     chart.series[serieIndex*3+1].update({"tooltip":{"valueDecimals":precision,"valueSuffix":" "+unit}});
-    chart.series[serieIndex*3+2].update({"tooltip":{"valueDecimals":precision,"valueSuffix":" "+unit}});	
-  }  
- }	
+    chart.series[serieIndex*3+2].update({"tooltip":{"valueDecimals":precision,"valueSuffix":" "+unit}});
+  }
+ }
 
 function preloadGraphData(widget,serieIndex, newsrc)
  {  var it =  document.getElementById(widget.id+'frame');
-	it.src = self()+'?cmd=getdata'+'&feed='+feed+'&id='+widget.id+'&indexes='+serieIndex+'&name='+newsrc+'&time=null,null';  
+	it.src = self()+'?cmd=getdata'+'&feed='+feed+'&id='+widget.id+'&indexes='+serieIndex+'&name='+newsrc+'&time=null,null';
  }
 
 function initRefreshGraphData(widget,serieIndex)
- {  
+ {
     var it =  document.getElementById(widget.id+'frame');
 	var srcnames = '';
 	var indexes ='';
@@ -2382,19 +2381,19 @@ function initRefreshGraphData(widget,serieIndex)
   	  for (var i=0;i<<?php
 print(MAX_DATASRC_PER_GRAPH);
 ?>;i++)
- 	    { srcnames=srcnames+(i>0?',':'')+widget['data_datasource_'+i];	
+ 	    { srcnames=srcnames+(i>0?',':'')+widget['data_datasource_'+i];
 	      indexes =indexes +(i>0?',':'')+i;
           var data = widget['_data'][i];
-		  timestamps= timestamps  +(i>0?',':'')+data.Tmin+','+data.Tmax;  
-		  
+		  timestamps= timestamps  +(i>0?',':'')+data.Tmin+','+data.Tmax;
+
 		}
 	else
 	{ srcnames= widget['data_datasource_'+serieIndex];
       indexes = serieIndex;
 	  var data = widget['_data'][serieIndex];
-	  timestamps= timestamps  +(i>0?',':'')+data.Tmin+','+data.Tmax;  
-	}		  
-    it.src = self()+'?cmd=getdata'+'&feed='+feed+'&id='+widget.id+'&indexes='+indexes+'&name='+srcnames+'&time='+timestamps+'&pouet=0'; 	
+	  timestamps= timestamps  +(i>0?',':'')+data.Tmin+','+data.Tmax;
+	}
+    it.src = self()+'?cmd=getdata'+'&feed='+feed+'&id='+widget.id+'&indexes='+indexes+'&name='+srcnames+'&time='+timestamps+'&pouet=0';
  }
 
 function NewGraphWidget(hwdname)
@@ -2409,19 +2408,19 @@ function NewDecoWidget(hwdname)
 { var index = widgets.length;
   widgets[index] = DefaultWidget(DECOELMT,index);
   CreateWidget(index,DECOELMT);
-  refreshEditSubMenu();  
+  refreshEditSubMenu();
 }
 
 function refreshDecoValues(srcName)
  { if (lastestValues[srcName])
 	 { var spans = document.getElementsByName(srcName);
        for (var i=0;i<spans.length;i++)
-	   { 
+	   {
          var precision = spans[i].getAttribute('precision');
          var showUnit  = (parseInt(spans[i].getAttribute('showunit'))==1);
 		 var value = lastestValues[srcName].value.toFixed(precision);
-		 spans[i].innerHTML= value +(showUnit?' '+lastestValues[srcName].unit:'');          
-	   }     
+		 spans[i].innerHTML= value +(showUnit?' '+lastestValues[srcName].unit:'');
+	   }
 	 }
  }
 
@@ -2449,7 +2448,7 @@ for ($i = 0; $i < MAX_VARIABLE_PER_DECO; $i++) {
 }
 ?>
   return data;
-}  
+}
 
 <?php
 function PrintDivPropertiesApplyCode($EDITABLE_VALUES)
@@ -2499,7 +2498,7 @@ PrintDivPropertiesApplyCode($GRAPH_EDITABLE_VALUES);
 PrintDivPropertiesApplyCode($DECO_EDITABLE_VALUES);
 ?>
       break;
-   }   
+   }
  }
 
  function applyCtrlDivProperties(graph_div,ctrl_div)
@@ -2507,11 +2506,11 @@ PrintDivPropertiesApplyCode($DECO_EDITABLE_VALUES);
     ctrl_div.style.top=graph_div.style.top;
 	ctrl_div.style.zIndex=parseInt(graph_div.style.zIndex)+1;
  }
- 
- 
+
+
 function  applyGraphProperties(widget)
  {
-	  
+
   var graphobj = widget["_chart"];
 <?php
 for ($i = 0; $i < sizeof($GRAPH_EDITABLE_VALUES); $i++)
@@ -2608,50 +2607,50 @@ for ($i = 0; $i < MAX_DATASRC_PER_GRAPH; $i++) {
     Print("    widget['_data'][$i].curBuffer=null;\n");
 }
 ?>
-    stopGraphRefreshTimer(widget); 
+    stopGraphRefreshTimer(widget);
     initRefreshGraphData(widget,-1);
 	widget['_dataSrcHasChanged'] =false;
    }
   }
- 
-<?php editPartStart(); ?> 
+
+<?php editPartStart(); ?>
 function changeGraphDataSource(widget,options,serieindex,newsource)
-  { var visible =  !((newsource==null) || (newsource==''));    
+  { var visible =  !((newsource==null) || (newsource==''));
     var graph = widget['_chart'];
 	var extremes = graph.xAxis[0].getExtremes();
 	var max = extremes.max;
-	var min = extremes.min;	
+	var min = extremes.min;
 	if (visible)
 	{ widget["_dataSrcHasChanged"]=true;
 	  for (var j=0;j<3;j++)
 	    graph.series[serieindex*3+j].setData(new Array(),true);
-	}	
+	}
 	options.series[serieindex*3+2].showInLegend = visible;
-	options.series[serieindex*3+2].visible = visible;	
+	options.series[serieindex*3+2].visible = visible;
 	options.xAxis[0].min=min;
-	options.xAxis[0].max=max;	
+	options.xAxis[0].max=max;
 	if (!visible)
 	{ options.series[serieindex*3+0].visible = visible;
       options.series[serieindex*3+1].visible = visible;
-	}	
-    if (visible) return serieindex;	
+	}
+    if (visible) return serieindex;
   }
 
-  
+
 function refreshGraph(str_field,dataindex)
  { var index  = parseInt(document.getElementById('WidgetIndex').value);
    var id =  widgets[index].id;
    var div = document.getElementById(id);
    var ctrlDiv = document.getElementById(id+'ctrl');
    var graph =  widgets[index]._chart;
-   var suffix='' 
-   if (typeof dataindex !== 'undefined') suffix='_'+dataindex;   
-   var value =  document.getElementById('grapheditor_'+str_field+suffix).value;   
+   var suffix=''
+   if (typeof dataindex !== 'undefined') suffix='_'+dataindex;
+   var value =  document.getElementById('grapheditor_'+str_field+suffix).value;
    var options = widgets[index]._chart.options;
-   var optionschanged= false; 
+   var optionschanged= false;
    str_field=str_field+suffix;
    var  mustReloadSerie= -1;
-  
+
 <?php
 $indent = "   ";
 for ($i = 0; $i < sizeof($GRAPH_EDITABLE_VALUES); $i++)
@@ -2683,7 +2682,7 @@ for ($i = 0; $i < sizeof($GRAPH_EDITABLE_VALUES); $i++)
                 case TYPE_FLOAT:
                     $value = "(value=='')? null : parseFloat(value)";
                     break;
-                case TYPE_YAXIS:    
+                case TYPE_YAXIS:
                 case TYPE_INT:
                     $value = "(value=='')? null : parseInt(value)";
                     break;
@@ -2729,26 +2728,26 @@ for ($i = 0; $i < sizeof($GRAPH_EDITABLE_VALUES); $i++)
         if ($GRAPH_EDITABLE_VALUES[$i]['appliesTo'] & NAVIGATOR_OBJ)
             Printf("{$indent}if(str_field=='%s%s') {options.navigator.%s=%s;optionschanged=true;}\n", $prefix, $name, $name, $value);
         if ($GRAPH_EDITABLE_VALUES[$i]['appliesTo'] & SCROLLBAR_OBJ)
-            Printf("{$indent}if(str_field=='%s%s') {options.scrollbar.%s=%s;optionschanged=true;}\n", $prefix, $name, $name, $value); 
+            Printf("{$indent}if(str_field=='%s%s') {options.scrollbar.%s=%s;optionschanged=true;}\n", $prefix, $name, $name, $value);
         if ($GRAPH_EDITABLE_VALUES[$i]['appliesTo'] & RANGESEL_OBJ)
-            Printf("{$indent}if(str_field=='%s%s') {options.rangeSelector.%s=%s;optionschanged=true;}\n", $prefix, $name, $name, $value); 
+            Printf("{$indent}if(str_field=='%s%s') {options.rangeSelector.%s=%s;optionschanged=true;}\n", $prefix, $name, $name, $value);
         if ($GRAPH_EDITABLE_VALUES[$i]['appliesTo'] & XAXIS_OBJ)
-            Printf("{$indent}if(str_field=='%s%s') { options.xAxis[0].%s=%s;optionschanged=true;}\n", $prefix, $name, $name, $value); 
+            Printf("{$indent}if(str_field=='%s%s') { options.xAxis[0].%s=%s;optionschanged=true;}\n", $prefix, $name, $name, $value);
         if ($GRAPH_EDITABLE_VALUES[$i]['appliesTo'] & TITLESTYLE_OBJ)
-            Printf("{$indent}if(str_field=='%s%s') { options.title.style.%s=%s;optionschanged=true;}\n", $prefix, $name, $name, $value); 
+            Printf("{$indent}if(str_field=='%s%s') { options.title.style.%s=%s;optionschanged=true;}\n", $prefix, $name, $name, $value);
          if ($GRAPH_EDITABLE_VALUES[$i]['appliesTo'] & EXPORTBTN_OBJ)
-            Printf("{$indent}if(str_field=='%s%s') { options.navigation.buttonOptions.%s=%s;optionschanged=true;}\n", $prefix, $name, $name, $value); 
-          
+            Printf("{$indent}if(str_field=='%s%s') { options.navigation.buttonOptions.%s=%s;optionschanged=true;}\n", $prefix, $name, $name, $value);
+
         if ($GRAPH_EDITABLE_VALUES[$i]['appliesTo'] & XAXISSTYLE_OBJ)
-            Printf("{$indent}if(str_field=='%s%s') { options.xAxis[0].labels.style.%s=%s;optionschanged=true;}\n", $prefix, $name, $name, $value); 
+            Printf("{$indent}if(str_field=='%s%s') { options.xAxis[0].labels.style.%s=%s;optionschanged=true;}\n", $prefix, $name, $name, $value);
         if ($GRAPH_EDITABLE_VALUES[$i]['appliesTo'] & YAXISSTYLE_OBJ)
-        {  Printf("{$indent}if(str_field=='%s%s') {optionschanged=true;",$prefix, $name); 
-           for ($j=0;$j<MAX_YAXIS_PER_GRAPH;$j++) 
+        {  Printf("{$indent}if(str_field=='%s%s') {optionschanged=true;",$prefix, $name);
+           for ($j=0;$j<MAX_YAXIS_PER_GRAPH;$j++)
             { Printf("options.yAxis[$j].labels.style.%s=%s;", $name, $value);
               Printf("options.yAxis[$j].title.style.%s=%s;", $name, $value);
-             
+
             }
-           print("}\n"); 
+           print("}\n");
         }
         if (($GRAPH_EDITABLE_VALUES[$i]['appliesTo'] & MANUAL_APPLY) && ($name == 'showmin'))
             Printf("{$indent}if(str_field=='%sshowmin_%d') { options.series[%d].visible=%s; optionschanged=true;}\n", $prefix, $index, 3 * $index + 1, $value);
@@ -2776,14 +2775,14 @@ for ($i = 0; $i < sizeof($GRAPH_EDITABLE_VALUES); $i++)
                         Printf("{$indent}if(str_field=='%s%s_%d') { options.yAxis[%s].%s=%s;optionschanged=true; };\n", $prefix, $name, $j, $j, $name, $value);
                         break;
                 }
-        
+
         if ($GRAPH_EDITABLE_VALUES[$i]['appliesTo'] & YBAND_OBJ)
             for ($j = 0; $j < MAX_YBAND_PER_GRAPH; $j++)
              {  Printf("{$indent}if(str_field=='%s%s_%d') { options.yAxis[0].plotBands[%s].%s=%s;optionschanged=true; };\n", $prefix, $name, $j, $j, $name, $value);
              }
-        
-        
-        
+
+
+
         if ($GRAPH_EDITABLE_VALUES[$i]['name'] == 'showmax') {
             Printf("{$indent}if(str_field=='%s%s_%d') { options.series[%d].visible=%s;optionschanged=true;}\n", $prefix, $name, $j, $index * 3, $value);
         }
@@ -2794,24 +2793,24 @@ for ($i = 0; $i < sizeof($GRAPH_EDITABLE_VALUES); $i++)
             for ($j = 0; $j < MAX_YAXIS_PER_GRAPH; $j++)
                 Printf("{$indent}if(str_field=='%s%s_%d') { options.yAxis[%s].title.%s=%s;optionschanged=true; };\n", $prefix, $name, $j, $j, $name, $value);
     }
-?> 
+?>
    applyCtrlDivProperties(div,ctrlDiv);
    if (optionschanged) {
 	   widgets[index]._chart =  new Highcharts.StockChart(options);
    }
    if (mustReloadSerie>=0) preloadGraphData(widgets[index],mustReloadSerie, value);
  }
- 
 
- 
+
+
  function refreshDeco(str_field,dataindex)
  { var index  = parseInt(document.getElementById('WidgetIndex').value);
    var id =  widgets[index].id;
    var div = document.getElementById(id);
-   var ctrlDiv = document.getElementById(id+'ctrl');   
-   var suffix=''  
-   if (typeof dataindex !== 'undefined') suffix='_'+dataindex;   
-   var value =  document.getElementById('decoeditor_'+str_field+suffix).value;    
+   var ctrlDiv = document.getElementById(id+'ctrl');
+   var suffix=''
+   if (typeof dataindex !== 'undefined') suffix='_'+dataindex;
+   var value =  document.getElementById('decoeditor_'+str_field+suffix).value;
    str_field=str_field+suffix;
    <?php
 $indent = "   ";
@@ -2877,8 +2876,8 @@ for ($i = 0; $i < sizeof($DECO_EDITABLE_VALUES); $i++)
     }
 ?>
  applyCtrlDivProperties(div,ctrlDiv);
- }  
- 
+ }
+
 function cancelGraphEdit()
  {var index  = parseInt(document.getElementById('WidgetIndex').value);
   var div = document.getElementById(widgets[index].id);
@@ -2887,49 +2886,49 @@ function cancelGraphEdit()
   applyDivProperties(div,widgets[index]);
   document.getElementById('grapheditor').style.display='none';
   showUICtrls(true);
-  restoreAllRefreshs();   
+  restoreAllRefreshs();
  }
 
 function cancelDecoEdit()
  {var index  = parseInt(document.getElementById('WidgetIndex').value);
   var div = document.getElementById(widgets[index].id);
-  restoreWidgetData(widgets[index]); 
+  restoreWidgetData(widgets[index]);
   applyDivProperties(div,widgets[index]);
   document.getElementById('decoeditor').style.display='none';
   showUICtrls(true);
   restoreAllRefreshs();
  }
- 
+
 function saveAll()
-{   document.getElementById('serviceFrame').src=self()+'?cmd=jssave&feed='+feed;   
+{   document.getElementById('serviceFrame').src=self()+'?cmd=jssave&feed='+feed;
 }
 
 var previousBgSettings = Array();
 function openBgSettings()
  { stopAllRefreshs();
-   showUICtrls(false);    
+   showUICtrls(false);
    previousBgSettings['BgImgType'] =  getBgType();
    <?php
 foreach ($background as $key => $value)
     if ($key != 'BgImgType')
         printf("previousBgSettings['%s'] =  document.getElementById('%s').value\n;", $key, $key);
-?>  
+?>
    document.getElementById('bgSettingsWindow').style.display='';
  }
- 
- 
+
+
 function openLogWindow()
  { stopAllRefreshs();
-   showUICtrls(false);   
+   showUICtrls(false);
    document.getElementById('logdata').innerHTML='loading..';
    document.getElementById('logWindow').style.display='';
-   refreshLogWindow();  
+   refreshLogWindow();
  }
-  
+
 function refreshLogWindow()
  { document.getElementById('logFrame').src=self()+'?feed=<?php print($FEED);?>&cmd=showLog';
  }
- 
+
 function updateLogWindow(data)
  { var div = document.getElementById('logdata');
    div.innerHTML=data;
@@ -2939,19 +2938,19 @@ function updateLogWindow(data)
 function closeLogWindow()
  { document.getElementById('logWindow').style.display='none';
    showUICtrls(true);
-   restoreAllRefreshs();   
- } 
+   restoreAllRefreshs();
+ }
 
 function openRawDataWindow()
  { stopAllRefreshs();
-   showUICtrls(false);   
+   showUICtrls(false);
    document.getElementById('rawdata').innerHTML='loading..';
    document.getElementById('rawDataWindow').style.display='';
-   refreshRawDataWindow();  
+   refreshRawDataWindow();
  }
- 
+
 function refreshRawDataWindow()
- { 
+ {
    document.getElementById('rawDataFrame').src=self()+'?feed=<?php print($FEED);?>&cmd=showRawData';
  }
 
@@ -2960,29 +2959,29 @@ function getCsvData()
    window.location=self()+'?feed=<?php print($FEED);?>&cmd=getcsv&UTCoffset='+60*d.getTimezoneOffset();
  }
 
- 
+
 function closeRawDataWindow()
  { document.getElementById('rawDataWindow').style.display='none';
    showUICtrls(true);
-   restoreAllRefreshs();   
- } 
-  
-function timestampTolocalTime(timestamp) 
- { var d = new Date(timestamp * 1000);	
+   restoreAllRefreshs();
+ }
+
+function timestampTolocalTime(timestamp)
+ { var d = new Date(timestamp * 1000);
    var year = d.getFullYear();
    var month = ('0' + (d.getMonth() + 1)).slice(-2);
-   var day = ('0' + d.getDate()).slice(-2);	
-   var hour = ('0' + d.getHours()).slice(-2);	
-   var min = ('0' + d.getMinutes()).slice(-2);		
-   var sec = ('0' + d.getSeconds()).slice(-2);		
+   var day = ('0' + d.getDate()).slice(-2);
+   var hour = ('0' + d.getHours()).slice(-2);
+   var min = ('0' + d.getMinutes()).slice(-2);
+   var sec = ('0' + d.getSeconds()).slice(-2);
    return   year+'-'+month+'-'+day+' '+hour+':'+min+':'+sec ;
- } 
- 
- 
+ }
+
+
 function updateRawDataWindow(headers,resolution,data)
  { var div = document.getElementById('rawdata');
    html='<table cellspacing=0 cellpadding=0 class="rawDataTable">';
-   
+
    html+='<thead>';
    h1='<th class="time" rowspan=2 valign="bottom">Date Time</th>';
    h2='';
@@ -2991,42 +2990,42 @@ function updateRawDataWindow(headers,resolution,data)
      h2=h2+'<th>Min</th><th>Cur</th><th>Max</th>';
    }
    html+='<tr>'+h1+'</tr><tr>'+h2+'</tr><thead>';
-   
+
    html+='<tbody>';
    for (i=0;i<data.length;i++)
    { html+='<tr><td class="time" >'+timestampTolocalTime(data[i][0])+'</td>';
-     for (j=0;j<headers.length;j++) 
+     for (j=0;j<headers.length;j++)
 	   { var r = resolution[j];
          var d0= (data[i][1][j][0]==null) ?'':data[i][1][j][0].toFixed(r);
 		 var d1= (data[i][1][j][1]==null) ?'':data[i][1][j][1].toFixed(r);
 		 var d2= (data[i][1][j][2]==null) ?'':data[i][1][j][2].toFixed(r);
 	     html+='<td class="mi">'+d0+'</td><td class="cu">'+d1+'</td><td class="ma">'+d2+'</td>';
 	   }
-     html+='</tr>';	   
+     html+='</tr>';
    }
    html+='</tbody>';
-   
-  
-   
-   
-   
-   html+='</table>';	 
+
+
+
+
+
+   html+='</table>';
    div.innerHTML=html;
-   
- } 
- 
+
+ }
+
 
 function cancelBgSettings()
  { var  values =document.getElementsByName('BgImgType');
 	for (var i=0;i<values.length;i++)
      { values[i].checked = values[i].value==previousBgSettings['BgImgType'];
- 	 }		
-	
+ 	 }
+
   <?php
 foreach ($background as $key => $value)
     if ($key != 'BgImgType')
         printf(" document.getElementById('%s').value = previousBgSettings['%s']\n;", $key, $key);
-?> 
+?>
   setBackground();
   document.getElementById('bgSettingsWindow').style.display='none';
   showUICtrls(true);
@@ -3036,23 +3035,23 @@ foreach ($background as $key => $value)
 function saveBgEdit()
  { saveAll();
    restoreAllRefreshs();
-   
+
    showUICtrls(true);
    document.getElementById('bgSettingsWindow').style.display='none';
- }	
+ }
 
- 
+
 function freqEnableChange()
  { var v = document.getElementById('freqEnabled').checked;
    document.getElementById('freqMin').disabled=!v;
    document.getElementById('freqMax').disabled=!v;
    document.getElementById('freqWait').disabled=!v;
  }
- 
+
 var previousCallBackSettings = Array();
 function opencallBackFreqSettings()
  { stopAllRefreshs();
-   showUICtrls(false);   
+   showUICtrls(false);
    <?php
 foreach ($callBackFreq as $key => $value)
     if ($key == 'freqEnabled')
@@ -3061,7 +3060,7 @@ foreach ($callBackFreq as $key => $value)
         printf("previousCallBackSettings['%s'] = document.getElementById('%s').value;\n;", $key, $key);
 ?>
     document.getElementById('callBackFreqSettings').style.display='';
- }	
+ }
 
 function cancelCallBackFreqSettings()
  { document.getElementById('callBackFreqSettings').style.display='none';
@@ -3075,19 +3074,19 @@ foreach ($callBackFreq as $key => $value)
    freqEnableChange();
    restoreAllRefreshs();
    showUICtrls(true);
- }	
-  
+ }
+
 function saveCallBackFreqSettings()
  { saveAll();
    restoreAllRefreshs();
    document.getElementById('callBackFreqSettings').style.display='none';
    showUICtrls(true);
- }	
- 
+ }
+
 var previousWakeUpSettings = Array();
 function openwakeUpSettings()
  { stopAllRefreshs();
-   showUICtrls(false);   
+   showUICtrls(false);
    <?php
 foreach ($wakeUpSettings as $key => $value)
     if (($key == 'wakeUpEnabled') || ($key == 'wakeUpAutoSleep'))
@@ -3097,8 +3096,8 @@ foreach ($wakeUpSettings as $key => $value)
 ?>
    wakeUpEnableChange();
    document.getElementById('wakeUpSettings').style.display='';
- }	
- 
+ }
+
 function cancelWakeUpSettings()
  { document.getElementById('wakeUpSettings').style.display='none';
    <?php
@@ -3110,10 +3109,10 @@ foreach ($wakeUpSettings as $key => $value)
 ?>
    restoreAllRefreshs();
    showUICtrls(true);
- }	
-  
+ }
+
 function saveWakeUpSettings()
- { 
+ {
    if (document.getElementById('wakeUpEnabled').checked)
      { if   (((document.getElementById('wakeUpAutoSleep').checked)
            || (parseInt(document.getElementById('wakeUpSleepAfter').value)>0))
@@ -3123,20 +3122,20 @@ function saveWakeUpSettings()
 		   && (parseInt(document.getElementById('wakeUpHours').value)==0)
 		   && (parseInt(document.getElementById('wakeUpMinutesA').value)==0)
 		   && (parseInt(document.getElementById('wakeUpMinutesB').value)==0))
-	     if (!confirm("These settings might very well send the\nhub in infinite sleep, a physical interaction\nwill be needed to wake it up again.\n\nDo you really want to save these settings?")) return;  
-		 
+	     if (!confirm("These settings might very well send the\nhub in infinite sleep, a physical interaction\nwill be needed to wake it up again.\n\nDo you really want to save these settings?")) return;
+
 	 }
    saveAll();
    restoreAllRefreshs();
    document.getElementById('wakeUpSettings').style.display='none';
    showUICtrls(true);
- }	
- 
+ }
+
  function wakeUpEnableChange()
  { var v = document.getElementById('wakeUpEnabled').checked;
    document.getElementById('wakeUpAutoSleep').disabled=!v;
    document.getElementById('wakeUpSleepAfter').disabled=!v;
-   document.getElementById('freqWait').disabled=!v; 
+   document.getElementById('freqWait').disabled=!v;
    var btn = document.getElementsByClassName('calendarBtn');
    for (var i=0;i<btn.length;i++)
    {  var src = btn[i].getAttribute('data-key');
@@ -3144,29 +3143,29 @@ function saveWakeUpSettings()
       value =  document.getElementById(src).value;
       if (value & (1<<ofs))
 	     {  btn[i].style.color = v?'white':'#e0e0e0';
-          btn[i].style.backgroundColor = v?'black':'#808080';	 
+          btn[i].style.backgroundColor = v?'black':'#808080';
        }
 	   else
 	   {  btn[i].style.color = v?'black':'#f0f0f0';
-         btn[i].style.backgroundColor = v?'white':'#E0E0E0';	
+         btn[i].style.backgroundColor = v?'white':'#E0E0E0';
      }
-     btn[i].style.borderColor = v?'#606060':'#A0A0A0';	  
-     btn[i].style.cursor = v?'pointer':'text';	  
-	  	   
+     btn[i].style.borderColor = v?'#606060':'#A0A0A0';
+     btn[i].style.cursor = v?'pointer':'text';
+
    }
    var btn = document.getElementsByClassName('calendarCtl');
    for (var i=0;i<btn.length;i++)
    {   btn[i].style.color = v?'black':'#e0e0e0';
        btn[i].style.backgroundColor = v?'white':'#E0E0E0';
-  	   btn[i].style.borderColor = v?'#606060':'#A0A0A0';	  
+  	   btn[i].style.borderColor = v?'#606060':'#A0A0A0';
        btn[i].style.cursor = v?'pointer':'text';
    }
  }
- 
-var previousCleanUpSettings = Array(); 
+
+var previousCleanUpSettings = Array();
 function openCleanupWindow()
  { stopAllRefreshs();
-   showUICtrls(false);   
+   showUICtrls(false);
    <?php
 foreach ($cleanUpSettings as $key => $value)
     if ($key == 'cleanUpEnabled')
@@ -3178,9 +3177,9 @@ foreach ($cleanUpSettings as $key => $value)
    document.getElementById('cleanUpWindow').style.display='';
    refreshCleanUpWindow();
  }
- 
- 
- 
+
+
+
 function cancelCleanUpSettings()
  { document.getElementById('cleanUpWindow').style.display='none';
    <?php
@@ -3192,45 +3191,45 @@ foreach ($cleanUpSettings as $key => $value)
 ?>
    restoreAllRefreshs();
    showUICtrls(true);
- }	
+ }
 
 function saveCleanUpSettings()
  { var trimsize   = document.getElementById('dataTrimSize').value;
    var maxsize = document.getElementById('dataMaxSize').value;
-   if (trimsize>=maxsize) 
+   if (trimsize>=maxsize)
    { alert('Trim size must be less than maximum file size');
      return;
    }
-   if (trimsize<2) 
+   if (trimsize<2)
    { alert('Trim size must be greater than 2');
      return;
    }
    if ((trimsize/maxsize)>0.95)
    { alert('Trim size must be less then Maximum file size * 95%');
      return;
-   }   
-  saveAll(); 
+   }
+  saveAll();
   document.getElementById('cleanUpWindow').style.display='none';
   showUICtrls(true);
-  restoreAllRefreshs(); 
-   
- } 
- 
- 
+  restoreAllRefreshs();
+
+ }
+
+
 function refreshCleanUpWindow()
  { document.getElementById('cleanupFrame').src=self()+'?feed=<?php print($FEED);?>&cmd=showDataStat';
  }
- 
+
 function deleteData(dataname,datafile)
  { if (confirm("Do really want to delete "+dataname+"?"))
-	 document.getElementById('cleanupFrame').src=self()+'?feed=<?php print($FEED);?>&cmd=delete&file='+encodeURI(datafile);  
- }	
- 
+	 document.getElementById('cleanupFrame').src=self()+'?feed=<?php print($FEED);?>&cmd=delete&file='+encodeURI(datafile);
+ }
+
 function sizeToStr(s)
-{ 
+{
    if (s<1024) return s+' bytes';
    if (s<1024*1024) return (s/1024).toFixed(1)+' Kb';
-   
+
    return (s/(1024*1024)).toFixed(1)+' Mb';
 }
 
@@ -3248,7 +3247,7 @@ function unixTimeStampToLocaStr(t)
 
 
 function updatefileDetails(data)
-{ var html=''; 
+{ var html='';
   for (var i=0;i<data.length;i++)
    {   html+='<div class="fileDetailsContents">'
            +'<table width="100%">'
@@ -3259,9 +3258,9 @@ function updatefileDetails(data)
 		   +'<tr><td>Last update:</td><td>'+unixTimeStampToLocaStr(data[i].lastupdate)+'</td></tr>'
 		   +'</table></div>';
    }
-  document.getElementById('filelist').innerHTML = html; 
- }	
- 
+  document.getElementById('filelist').innerHTML = html;
+ }
+
  <?php
 function PrintSaveCode($editorPrefix, $EDITABLE_VALUES)
 {
@@ -3279,33 +3278,33 @@ function PrintSaveCode($editorPrefix, $EDITABLE_VALUES)
         }
 }
 ?>
- 
+
 function saveGraphEdit()
  { var index  = parseInt(document.getElementById('WidgetIndex').value);
    <?php
 PrintSaveCode('graph', $GRAPH_EDITABLE_VALUES);
 ?>
-   saveAll(); 
+   saveAll();
    document.getElementById('grapheditor').style.display='none';
    showUICtrls(true);
    restoreAllRefreshs();
  }
- 
+
 function saveDecoEdit()
  { var index  = parseInt(document.getElementById('WidgetIndex').value);
    <?php
 PrintSaveCode('deco', $DECO_EDITABLE_VALUES);
 ?>
-   saveAll(); 
+   saveAll();
    document.getElementById('decoeditor').style.display='none';
    showUICtrls(true);
    restoreAllRefreshs();
  }
- 
 
- 
- 
- 
+
+
+
+
 <?php
 function PrintEditWidgetInputUpdate($editorName, $EDITABLE_VALUES)
 {
@@ -3327,7 +3326,7 @@ function PrintEditWidgetInputUpdate($editorName, $EDITABLE_VALUES)
                 Printf("{$indent}document.getElementById('%s_%s%s%s').value=widgets[index].%s%s%s;\n", $editorName, $prefix, $name, $suffix, $prefix, $name, $suffix);
         }
 }
-?> 
+?>
 
 function showUICtrls(state)
 { var UICtrl = document.getElementsByName('UICtrl');
@@ -3345,16 +3344,16 @@ function editWidget(id)
    switch(parseInt(widgets[index].type))
    { case  GRAPHELMT:
            <?php PrintEditWidgetInputUpdate('grapheditor',$GRAPH_EDITABLE_VALUES);?>
-	   document.getElementById('grapheditor').style.display='';	   
+	   document.getElementById('grapheditor').style.display='';
 	   break;
      case  DECOELMT:
 	   <?php PrintEditWidgetInputUpdate('decoeditor',$DECO_EDITABLE_VALUES);?>
 	   document.getElementById('decoeditor').style.display='';
 	   showUICtrls(false);
 	   break;
-   }	
-   showUICtrls(false);   
-   widgets[index]['_dataSrcHasChanged'] =false;  
+   }
+   showUICtrls(false);
+   widgets[index]['_dataSrcHasChanged'] =false;
 }
 <?php editPartEnd(); ?>
 
@@ -3363,28 +3362,28 @@ function actionFailed($msg)
    document.getElementById('ErrorDiv').style.display='';
  }
 function closeErrorDiv()
- { document.getElementById('ErrorDiv').style.display='none';  
+ { document.getElementById('ErrorDiv').style.display='none';
  }
- 
- 
+
+
 function actionSuccess($msg)
  { document.getElementById('NotifyDiv').style.opacity= 1.0;
    document.getElementById('Notifymessage').innerHTML=$msg;
    document.getElementById('NotifyDiv').style.display='';
-   setTimeout(function(){notificationDecay()},1000); 
- }	
- 
+   setTimeout(function(){notificationDecay()},1000);
+ }
+
 function notificationDecay()
  { var opacity = parseFloat(document.getElementById('NotifyDiv').style.opacity);
    opacity-=0.05;
    if (opacity>0)
 	{ document.getElementById('NotifyDiv').style.opacity = opacity;
       setTimeout(function(){notificationDecay()},60);
-	} 	
+	}
    else
-   document.getElementById('NotifyDiv').style.display='none';			
- }	
-<?php editPartStart(); ?> 
+   document.getElementById('NotifyDiv').style.display='none';
+ }
+<?php editPartStart(); ?>
 function expandColapse(prefix,index)
  {  var div =document.getElementById(prefix+'Section'+index);
     var link =  document.getElementById(prefix+'link'+index);
@@ -3396,24 +3395,24 @@ function expandColapse(prefix,index)
 	 { div.style.display='';
        link.innerHTML =  '&#10134;'
 	 }
-		
 
- }	
- 
- 
+
+ }
+
+
 function switchMainMenuSide()
  { var div = document.getElementById('mainMenuContainer');
    var left= parseInt(window.getComputedStyle(div,null).getPropertyValue('left'));
-   if (left<25)	
+   if (left<25)
    { div.style.right='10px';
      div.style.left=null;
    }
    else
    { div.style.left='10px';
 	 div.style.right=null;
-   }	   
- }	
- 
+   }
+ }
+
 function sideswitch(prefix)
  { var div = document.getElementById(prefix);
    var left= window.getComputedStyle(div,null).getPropertyValue('left');
@@ -3428,7 +3427,7 @@ function sideswitch(prefix)
 	 div.style.borderBottomLeftRadius='10px';
 	 sideSwitcher.style.right=null;
          sideSwitcher.style.left="0px";
-	 header.style.textAlign='right'; 	  
+	 header.style.textAlign='right';
    }
    else
        { div.style.right=null;
@@ -3439,36 +3438,36 @@ function sideswitch(prefix)
 	 div.style.borderBottomLeftRadius='0px';
 	 sideSwitcher.style.right="0px";
          sideSwitcher.style.left=null;
-	 header.style.textAlign='left'; 	  
-   }   
+	 header.style.textAlign='left';
+   }
  }
- 
+
  function refreshEditSubMenu()
  { var html = "<li><a href='javascript:openBgSettings()'>Background settings</a></li>";
    for (i=0;i<widgets.length;i++)
     { html = html+ "<li><a href='javascript:editWidget(\""+widgets[i].id+"\")'>"+widgets[i].id;
-      if (widgets[i].title_text)  html=html+' ('+widgets[i].title_text+')';	 
+      if (widgets[i].title_text)  html=html+' ('+widgets[i].title_text+')';
 	  html = html+"</a></li>";
 	}
-   document.getElementById('editSubMenu').innerHTML = html;  
+   document.getElementById('editSubMenu').innerHTML = html;
  }
- 
- 
-<?php editPartEnd(); ?> 
-  
+
+
+<?php editPartEnd(); ?>
+
  function getBgType()
  { var  values =document.getElementsByName('BgImgType');
    var value ='none';
    for (var i=0;i<values.length;i++)
      { if (values[i].checked) value = values[i].value;
      }
-   return value;	 
+   return value;
  }
- 
+
  function bgselect(index)
-  { var  values =document.getElementsByName('BgImgType'); 
+  { var  values =document.getElementsByName('BgImgType');
     for (var i=0;i<values.length;i++)
-		 values[i].checked = i==index;   
+		 values[i].checked = i==index;
 	setBackground();
   }
 
@@ -3479,16 +3478,16 @@ function sideswitch(prefix)
    var rules = sheet.cssRules || sheet.rules;
    for (var i=0;i<rules.length;i++)
 	if (rules[i].selectorText.toUpperCase()=='BODY')
-   rule =	rules[i];	
-   rule.style.backgroundColor=document.getElementById('BgSolidColor').value;	 
+   rule =	rules[i];
+   rule.style.backgroundColor=document.getElementById('BgSolidColor').value;
    switch (value)
      {  case 'none' :
-	       
+
 	       rule.style.backgroundImage=null;
 	       rule.style.backgroundRepeat= null;
 		   rule.style.backgroundSize= null;
-		   break;   
-		   
+		   break;
+
 		case 'gradient' :
 		   var c1= document.getElementById('BgGradientColor1').value;
 		   var c2= document.getElementById('BgGradientColor2').value;
@@ -3498,7 +3497,7 @@ function sideswitch(prefix)
 		case 'image' :
 		   var url    = document.getElementById('BgImageUrl').value;
 	       var repeat = document.getElementById('BgImageRepeat').value;
-		 
+
 	      rule.style.backgroundImage= "url("+url+")";
 		  switch (repeat)
 		  { case 'cover' :   rule.style.backgroundRepeat= 'no-repeat';
@@ -3506,16 +3505,16 @@ function sideswitch(prefix)
 		                     break;
 			case 'contain' : rule.style.backgroundRepeat= 'no-repeat';
 		                     rule.style.backgroundSize= 'contain';
-		                     break;	   
+		                     break;
 			default:         rule.style.backgroundSize= 'auto';
 		                     rule.style.backgroundRepeat= repeat;
 		                     break;
 		  }
      }
  }
- 
+
  <?php editPartStart(); ?>
- 
+
 function setAll(inputName,count,every)
  {  if (!document.getElementById('wakeUpEnabled').checked) return;
     var value = 0;
@@ -3523,30 +3522,30 @@ function setAll(inputName,count,every)
 	var valueB = 0;
 	if (count<32)
 	{ if (every==0) document.getElementById(inputName).value =0;
-	  else 
+	  else
 	  { for (i=0;i<count;i++) if ((i%every)==0) value |= (1<<i);
-		  document.getElementById(inputName).value =value;    
+		  document.getElementById(inputName).value =value;
 	  }
-	}	
+	}
     else
-	{ if (every==0) 
+	{ if (every==0)
 	   { document.getElementById(inputName+'A').value =0;
 	     document.getElementById(inputName+'B').value =0;
 	   }
 	  else
-	  { for (i=0;i<count;i++) 
-		 if ((i%every)==0) 
-		   {  if (i<30) valueA  |= (1<<i);	
-	                 else valueB  |= (1<<(i-30));	
-		   }	
-		
+	  { for (i=0;i<count;i++)
+		 if ((i%every)==0)
+		   {  if (i<30) valueA  |= (1<<i);
+	                 else valueB  |= (1<<(i-30));
+		   }
+
 		document.getElementById(inputName+'A').value =valueA;
-        document.getElementById(inputName+'B').value =valueB;		
-	 }		  
+        document.getElementById(inputName+'B').value =valueB;
+	 }
 	}
-	
+
   for (var i=0;i<count;i++)
-	{ var index=i; 
+	{ var index=i;
     if (count>32)
 	    { if (i<30)  value = valueA; else { value=valueB; index-=30;}
        }
@@ -3554,24 +3553,24 @@ function setAll(inputName,count,every)
 	   if (value & (1<<index))
        { el.style.color = 'white';
 	     el.style.backgroundColor = 'black';
-	    
+
        }
       else
        { el.style.color = 'black';
 	       el.style.backgroundColor = 'white';
-         
+
        }
 	}
-		
+
  }
- 
- 
+
+
 function setCalendar(inputName,index,MoreThan32Value)
 {  if (!document.getElementById('wakeUpEnabled').checked) return;
    var bitindex =index;
    var el = document.getElementById(inputName+index);
    if (MoreThan32Value)
-	 if (index>=30) 
+	 if (index>=30)
 	 { inputName=inputName+'B'
        bitindex-=30;
 	 } else  inputName=inputName+'A';
@@ -3582,39 +3581,39 @@ function setCalendar(inputName,index,MoreThan32Value)
    {  value -=  mask;
       el.style.color = 'black';
 	    el.style.backgroundColor = 'white';
-     
-	  
+
+
    }
    else
    {  value |= mask;
       el.style.color = 'white';
 	    el.style.backgroundColor = 'black';
    }
-    
+
    document.getElementById(inputName).value = value;
 }
  <?php editPartEnd(); ?>
 
- function updateOrientation()  // thanks stackoverflow 
+ function updateOrientation()  // thanks stackoverflow
   {  var viewport = document.querySelector("meta[name=viewport]");
-	 if (typeof window.orientation !== 'undefined') 
+	 if (typeof window.orientation !== 'undefined')
 	 { switch (window.orientation)
 	   { case 90:
 	     case -90:
             viewport.setAttribute('content', 'width=450');
 			break;
-         default:		  
+         default:
 	       viewport.setAttribute('content', 'width=900');
 	   }
-	 }	   
-	  
-     
+	 }
+
+
   }
- 
+
  updateOrientation();
  window.addEventListener('orientationchange', updateOrientation, false);
- 
- 
+
+
 </script>
 </HEAD>
 
@@ -3628,7 +3627,7 @@ if (!$data_found || !$config_file_found) {
     if ($config_file_found)
         print('- No data in that feed -');
     else if ($data_found) {
-		
+
         print('- Feed not configured yet -<br><span style="font-size:1em">');
         if (editMode())
             print('Click on the <i>New..</i> menu');
@@ -3788,7 +3787,7 @@ function printEditorInnerCode($inputprefix, $EDITABLE_VALUES)
 </div>
 <a href='javascript:sideswitch("grapheditor");'>
 <div class='sideswitcher' id='grapheditorSideSwitcher' style='right:0px'  >
-&#8633; 
+&#8633;
 </div></a></div>
 
 <div id='decoeditor' class='grapheditor' style='display:none;left:0%;'>
@@ -3802,7 +3801,7 @@ function printEditorInnerCode($inputprefix, $EDITABLE_VALUES)
 </div>
 <a href='javascript:sideswitch("decoeditor");'>
 <div class='sideswitcher' id='decoeditorSideSwitcher' style='right:0px'  >
-&#8633; 
+&#8633;
 </div></a></div>
 
 
@@ -3834,7 +3833,7 @@ function printEditorInnerCode($inputprefix, $EDITABLE_VALUES)
 
 <div id='bgSettingsWindow' class='settingsWindow' style='position:absolute;left:35%;top:20%;display:none;'>
 <div class='edit_header'>Background Settings</div>
-<div class='edit-contents'> 
+<div class='edit-contents'>
 Define the background properties and click save.<br><br>
 <table width='100%'>
 <tr><td colspan=2><b>Background color</b></td></tr>
@@ -3854,13 +3853,13 @@ Define the background properties and click save.<br><br>
 	      <option value='repeat-y' <?php print($background["BgImageRepeat"]=='repeat-y'?"selected":"");?>>Repeat Y</option>
 	      <option value='cover'    <?php print($background["BgImageRepeat"]=='cover'?"selected":"");?>>Cover</option>
 	      <option value='contain'  <?php print($background["BgImageRepeat"]=='contain'?"selected":"");?>>Contain</option>
-	      </select></td></tr>			  
+	      </select></td></tr>
 </table>
 <br>
 <br>
 <br>
 </div>
-<div class='edit_footer'> 
+<div class='edit_footer'>
 <a class='edit_button' href='javascript:saveBgEdit()'>Save</a>
 <a class='edit_button' href='javascript:cancelBgSettings()'>Cancel</a>
 </div>
@@ -3869,12 +3868,12 @@ Define the background properties and click save.<br><br>
 
 <div id='logWindow' class='settingsWindow' style='position:absolute;left:20%;top:10%;width:60%;bottom:10%;display:none;'>
 <div class='edit_header'>Log file</div>
-<div class='edit-contents' id='logdata' style='white-space: pre-wrap;position:absolute;font-size:0.8em;font-family:courier;overflow:scroll;left:0px;right:0px;top:26px;bottom:25px;'> 
+<div class='edit-contents' id='logdata' style='white-space: pre-wrap;position:absolute;font-size:0.8em;font-family:courier;overflow:scroll;left:0px;right:0px;top:26px;bottom:25px;'>
 </div>
 <br>
 <br>
 <br>
-<div class='edit_footer'> 
+<div class='edit_footer'>
 
 
 <a class='edit_button' href='javascript:refreshLogWindow()'>Refresh</a>
@@ -3887,13 +3886,13 @@ Define the background properties and click save.<br><br>
 <div id='rawDataWindow' class='settingsWindow' style='position:absolute;left:5%;top:5%;width:90%;bottom:5%;display:none;'>
 <div class='edit_header'><?php printf("Raw data: %d last records for feed %s.",RAWDATACLUSTERSIZE,$FEED);?></div>
 
-<div class='edit-contents' id='rawdata' style='white-space: pre-wrap;position:absolute;font-size:0.8em;font-family:courier;overflow:scroll;left:0px;right:0px;top:26px;bottom:25px;'> 
+<div class='edit-contents' id='rawdata' style='white-space: pre-wrap;position:absolute;font-size:0.8em;font-family:courier;overflow:scroll;left:0px;right:0px;top:26px;bottom:25px;'>
 
 </div>
 <br>
 <br>
 <br>
-<div class='edit_footer'> 
+<div class='edit_footer'>
 <a class='edit_button' href='javascript:getCsvData()'>CSV file</a>
 <a class='edit_button' href='javascript:refreshRawDataWindow()'>Refresh</a>
 <a class='edit_button' href='javascript:closeRawDataWindow()'>Close</a>
@@ -3905,8 +3904,8 @@ Define the background properties and click save.<br><br>
 
 <div id='callBackFreqSettings' class='settingsWindow' style='position:absolute;left:35%;top:20%;width:40%;display:none;'>
 <div class='edit_header'>Frequency settings</div>
-<div class='edit-contents'> 
-You can modify the callback frequency settings for any hub connecting through this feed. 
+<div class='edit-contents'>
+You can modify the callback frequency settings for any hub connecting through this feed.
 Just click on checkbox below if you want the system to overide the YoctoHub settings.  <br><br>
 <table width='100%'>
 <tr><td colspan=2><input type='checkbox' id='freqEnabled' onclick='freqEnableChange()'  <?php printf($callBackFreq['freqEnabled']?'checked':'');?> > Manage callback frequency</td></tr>
@@ -3919,7 +3918,7 @@ Just click on checkbox below if you want the system to overide the YoctoHub sett
 <br>
 <br>
 <br>
-<div class='edit_footer'> 
+<div class='edit_footer'>
 <a class='edit_button' href='javascript:saveCallBackFreqSettings()'>Save</a>
 <a class='edit_button' href='javascript:cancelCallBackFreqSettings()'>Cancel</a>
 </div>
@@ -3928,14 +3927,14 @@ Just click on checkbox below if you want the system to overide the YoctoHub sett
 
 <div id='cleanUpWindow' class='settingsWindow' style='position:absolute;left:20%;top:10%;bottom:10%;width:60%;display:none;'>
 <div class='edit_header'>Data Clean Up</div>
- 
-<input type='checkbox' id='cleanUpEnabled' <?php printf($cleanUpSettings['cleanUpEnabled']?'checked':'');?> > 
-Automaticaly trim data file contents to 
+
+<input type='checkbox' id='cleanUpEnabled' <?php printf($cleanUpSettings['cleanUpEnabled']?'checked':'');?> >
+Automaticaly trim data file contents to
 <input size=5 id='dataTrimSize' value='<?php printf($cleanUpSettings['dataTrimSize']);?>'>
-records when file size is greater than 
+records when file size is greater than
 <input size=7 id='dataMaxSize' value='<?php printf($cleanUpSettings['dataMaxSize']);?>'> records.
 <div id='filelist' style='position:absolute;top:50px;bottom:1px;left:1px;bottom:30px;right:10px;overflow-Y:scroll'></div>
-<div class='edit_footer'> 
+<div class='edit_footer'>
 <a class='edit_button' href='javascript:saveCleanUpSettings()'>Save</a>
 <a class='edit_button' href='javascript:cancelCleanUpSettings()'>Cancel</a>
 </div>
@@ -3982,10 +3981,10 @@ function printPresetButtons($name, $btns, $count)
 
 <div id='wakeUpSettings' class='settingsWindow' style='position:absolute;left:25%;top:5%;width:50%;display:none;'>
 <div class='edit_header'>Wake up settings</div>
-<div class='edit-contents'> 
+<div class='edit-contents'>
 You can modify the wakeup parameters for any hub connecting through this feed. This
 will only apply on hubs featuring a Wake Up function such as YoctoHub-Wireless and
-YoctoHub-GSM. Just click on check-box below if you want the system to override the 
+YoctoHub-GSM. Just click on check-box below if you want the system to override the
 YoctoHub wake up settings.  <br><br>
 <table width='100%' >
 <tr><td colspan=2><input type='checkbox' id='wakeUpEnabled' onclick='wakeUpEnableChange()'  <?php printf($wakeUpSettings['wakeUpEnabled']?'checked':'');?> > Manage wakeup seetings</td></tr>
@@ -4019,14 +4018,14 @@ for ($i = 0; $i < 31; $i++)
 <tr><td colspan=2 style='padding-left:20px;'>
 <?php   $a=array(); for ($i=0;$i<24;$i++) $a[$i]=$i;
  PrintWakeUpChooser('Hours',$a,$wakeUpSettings ); ?>
-</td></tr> 
+</td></tr>
 <td colspan=2 style='text-align:right'><?php printPresetButtons('Hours',array(2,3,4,6),24);?> </td>
 
 <tr><td colspan=2 style='background-color:#e0e0e0'>Minutes</td></tr>
 <tr><td colspan=2 style='padding-left:20px;'>
 <?php  $a=array(); for ($i=0;$i<60;$i++) $a[$i]=$i;
  PrintWakeUpChooser('Minutes',$a,$wakeUpSettings ); ?>
-</td></tr> 
+</td></tr>
 <td colspan=2 style='text-align:right'><?php printPresetButtons('Minutes',array(2,3,4,5,10,15),60);?> </td>
 
 
@@ -4035,7 +4034,7 @@ for ($i = 0; $i < 31; $i++)
 <br>
 <br>
 <br>
-<div class='edit_footer'> 
+<div class='edit_footer'>
 <a class='edit_button' href='javascript:saveWakeUpSettings()'>Save</a>
 <a class='edit_button' href='javascript:cancelWakeUpSettings()'>Cancel</a>
 </div>
@@ -4049,13 +4048,13 @@ for ($i = 0; $i < 31; $i++)
 <iframe id='serviceFrame' style='position:absolute;left:0px;bottom:0px;margin-left:5px;margin-bottom:5px;border: 1px solid grey;display:none;' ></iframe>
 
 
-<?php  
-openNoticeMessage(); 
-// So, you really want to remove that annoying pop-up notice, right?  
-// Just create an empty file named YesIKnowThatHighStockLibraryIsNotFree.txt 
+<?php
+openNoticeMessage();
+// So, you really want to remove that annoying pop-up notice, right?
+// Just create an empty file named YesIKnowThatHighStockLibraryIsNotFree.txt
 // next to this file and the pop-up will disappear. That being said,
 // if you plan to use that application for anything else but personal
-// or non-profit project, you should buy a HighStock license. These 
+// or non-profit project, you should buy a HighStock license. These
 // guys at HighSoft made an amazing work, they deserve their money.
 ?>
 <div id='notice1' style='position:absolute;top:0px;height:0px;width:100%;height:100%;background-color:#e0e0e0;z-index:100001;opacity: 0.9;text-align:center;'></div>
@@ -4067,7 +4066,7 @@ openNoticeMessage();
 <?php printNoticeMessage(); ?>
 </div></td><td width="30%"></td></tr><tr><td colspan=3></td></tr>
 </table></div>
-<script> 
+<script>
 it =  document.getElementById('gi'+'bt');
 if (it)
 { it.addEventListener('click',hideNotice);
@@ -4126,6 +4125,5 @@ if (!is_null($inidata)) {
 Print("<!--\n");
 RunTrimProcess();
 Print("-->\n");
-?> 
+?>
 </HTML>
-

@@ -88,7 +88,7 @@ $now              = time();
 $appReady         = 0;
 $shownotice       = false;
 $snow             = gmdate("Y-m-d\TH:i:s\z", $now);
-define("MAX_DATASRC_PER_GRAPH",       4);
+define("MAX_DATASRC_PER_GRAPH",       4);  // don't forget to update $defaultColor accordingly
 define("MAX_YAXIS_PER_GRAPH",         2);
 define("MAX_YBAND_PER_GRAPH",         3);
 define("MAX_VARIABLE_PER_DECO",       6);
@@ -179,10 +179,10 @@ function GetDataFileHeader($sensor)
   $header="[sensor]\r\n"
          ."lastupdate=\"$snow\"\r\n"
          ."logicalname=\"$name\"\r\n"
-	     ."hardwarename=\"$hname\"\r\n"
-	     ."unit=\"$unit\"\r\n"
-	     ."resolution=\"$resolution\"\r\n"
-	     .chr(26);
+         ."hardwarename=\"$hname\"\r\n"
+         ."unit=\"$unit\"\r\n"
+         ."resolution=\"$resolution\"\r\n"
+         .chr(26);
     $header .= str_repeat(chr(0), 512 - strlen($header));
     return pack("a*", $header);
 }
@@ -1016,11 +1016,11 @@ function printDataFileStats()
         $data[]             = $el;
     }
     print(IFRAMEHEADER."<script>\n");
-	print("window.parent.updatefileDetails(");
-	Print(json_encode($data));
-	Print(");");
-	print("</script></body></html>\n");
-	die('Done.');
+    print("window.parent.updatefileDetails(");
+    Print(json_encode($data));
+    Print(");");
+    print("</script></body></html>\n");
+    die('Done.');
 
    var_dump($data);
    die('done');
@@ -1045,11 +1045,11 @@ if (array_key_exists('cmd',$_GET))
       case 'getlastestdata' : loadLatestData($_GET['feed']);  die('done.'); break;
       case 'showDataFileStats' : printDataFileStats();die('done.'); break;
       case 'delete'     : if (array_key_exists('file',$_GET)) deleteFile($_GET['file']);
-					      die('done');
-						  break;
+                          die('done');
+                          break;
       case 'getdata'    : loadGraphData($_GET['feed'],$_GET['id'],$_GET['indexes'],$_GET['name'],$_GET['time']);
-	                     die('done.');
-	                     break;
+                         die('done.');
+                         break;
    }
    die('invalid command');
  }
@@ -1094,7 +1094,7 @@ define( "YBAND_OBJ",     32768);
 define( "EXPORTBTN_OBJ", 65536);
 define( "NOTHING"       , 0);
 
-$defaultColor= Array('#FF0000','#0000FF','#000000');
+$defaultColor= Array('#FF0000','#0000FF','#000000',"#00FF00");
 
 $DECO_EDITABLE_VALUES =
  Array(  Array("caption"=> "Window ",         "editable"=>false, "columnBreak" => true,       "appliesTo"=>NOTHING),
@@ -1108,10 +1108,10 @@ $DECO_EDITABLE_VALUES =
          Array("caption"=> "Border radius",   "prefix"=>"",      "name"=>"borderRadius",   "type"=> TYPE_PX,        "defaultValue"=>"0"             ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>STYLE_OBJ,"hint"=>'Widget border radius, in pixels.'),
          Array("caption"=> "Left Margin",     "prefix"=>"",      "name"=>"paddingLeft",    "type"=> TYPE_PX,        "defaultValue"=>"5"             ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>STYLE_OBJ,"hint"=>'Widget inner left margin, in pixels.'),
          Array("caption"=> "Right Margin",    "prefix"=>"",      "name"=>"paddingRight",   "type"=> TYPE_PX,        "defaultValue"=>"5"             ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>STYLE_OBJ,"hint"=>'Widget inner right margin, in pixels.'),
-   	     Array("caption"=> "Top Margin",      "prefix"=>"",      "name"=>"paddingTop",     "type"=> TYPE_PX,        "defaultValue"=>"5"             ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>STYLE_OBJ,"hint"=>'Widget inner top margin, in pixels.'),
+         Array("caption"=> "Top Margin",      "prefix"=>"",      "name"=>"paddingTop",     "type"=> TYPE_PX,        "defaultValue"=>"5"             ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>STYLE_OBJ,"hint"=>'Widget inner top margin, in pixels.'),
          Array("caption"=> "Bottom Margin",   "prefix"=>"",      "name"=>"paddingBottom",  "type"=> TYPE_PX,        "defaultValue"=>"5"             ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>STYLE_OBJ,"hint"=>'Widget inner bottom margin, in pixels.'),
-   	     Array("caption"=> "Bg color"        ,"prefix"=>"",      "name"=>"backgroundColor","type"=> TYPE_COLOR,     "defaultValue"=>"#f0f0f0"       ,"nullable"=>true, "editable"=>true,"index"=>null,"appliesTo"=>STYLE_OBJ,"hint"=>'Widget background color,  as a HTLM color code.'),
-	     Array("caption"=> "Text",            "prefix"=>"",      "name"=>"innerHTML",      "type"=> TYPE_LONGSTRING,"defaultValue"=>"Hello World!"  ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>DECOTEXT_OBJ,"hint"=>'Widget inner text, you can use variables {$1}...{$'.MAX_VARIABLE_PER_DECO.'}. HTML code is supported, but not checked.'),
+         Array("caption"=> "Bg color"        ,"prefix"=>"",      "name"=>"backgroundColor","type"=> TYPE_COLOR,     "defaultValue"=>"#f0f0f0"       ,"nullable"=>true, "editable"=>true,"index"=>null,"appliesTo"=>STYLE_OBJ,"hint"=>'Widget background color,  as a HTLM color code.'),
+         Array("caption"=> "Text",            "prefix"=>"",      "name"=>"innerHTML",      "type"=> TYPE_LONGSTRING,"defaultValue"=>"Hello World!"  ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>DECOTEXT_OBJ,"hint"=>'Widget inner text, you can use variables {$1}...{$'.MAX_VARIABLE_PER_DECO.'}. HTML code is supported, but not checked.'),
          Array("caption"=> "Size",            "prefix"=>"",      "name"=>"fontSize",       "type"=> TYPE_FONTSIZE,  "defaultValue"=>"2"             ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>STYLE_OBJ,"hint"=>'Widget inner text size.'),
          Array("caption"=> "Color",           "prefix"=>"",      "name"=>"color",          "type"=> TYPE_COLOR,     "defaultValue"=>"#000000"       ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>STYLE_OBJ,"hint"=>'Widget inner text color, as a HTLM color code.'),
          Array("caption"=> "Align",           "prefix"=>"",      "name"=>"textAlign",      "type"=> TYPE_TALIGN,    "defaultValue"=>"center"        ,"nullable"=>false,"editable"=>true,"index"=>null,"appliesTo"=>STYLE_OBJ,"hint"=>'Widget typographic alignment.')
@@ -1604,15 +1604,15 @@ A.calendarBtn
     font-family: sans-serif;
     font-size: 12px;
     height: 12px;
-	text-align:center;
+    text-align:center;
     line-height: 12px;
     margin-left: 2px;
     margin-right: 2px;
-	margin-top: 2px;
+    margin-top: 2px;
     margin-top: 2px;
     padding-top:2px;
     padding-bottom:2px;
-	padding-lef:4px;
+    padding-lef:4px;
     padding-right:4px;
     text-decoration: none;
     width: 25px;
@@ -1630,15 +1630,15 @@ A.calendarCtl
     font-family: sans-serif;
     font-size: 12px;
     height: 12px;
-	text-align:center;
+    text-align:center;
     line-height: 12px;
     margin-left: 2px;
     margin-right: 2px;
-	margin-top: 2px;
+    margin-top: 2px;
     margin-top: 2px;
     padding-top:2px;
     padding-bottom:2px;
-	padding-lef:4px;
+    padding-lef:4px;
     padding-right:4px;
     text-decoration: none;
     width: 50px;
@@ -1702,13 +1702,13 @@ function NewWidgetName(str_prefix)
   do
    { var ok=true;
      for (var i=0;i<widgets.length;i++)
- 	 {  if (widgets[i].id==id)
-		{ ok =false;
-	      n++;
-		  id=str_prefix+n;
+     {  if (widgets[i].id==id)
+        { ok =false;
+          n++;
+          id=str_prefix+n;
 
-		}
-	}
+        }
+    }
    } while(!ok)
    return id;
  }
@@ -1769,82 +1769,82 @@ function DefaultWidget(int_type,int_index)
 
   switch (int_type)
   { case GRAPHELMT:
-	  return {
-		"type" : int_type,
-		"id"   : NewWidgetName("Graph"),
-		"_dataSrcHasChanged" : false,
+      return {
+        "type" : int_type,
+        "id"   : NewWidgetName("Graph"),
+        "_dataSrcHasChanged" : false,
 <?php
 printDefaultObjectValue($GRAPH_EDITABLE_VALUES);
 ?>
-	   "_data":  new Array(<?php
+       "_data":  new Array(<?php
 for ($i = 0; $i < MAX_DATASRC_PER_GRAPH; $i++)
     printf("%s{'Tmin':null,'Tmax':null,'minBuffer':null,'maxBuffer':null,'curBuffer':null }", $i > 0 ? ',' : '');
 ?>),
-	    "_originalData" : new Array(),
-		"_refreshTimer":null
-		 };
+        "_originalData" : new Array(),
+        "_refreshTimer":null
+         };
     case DECOELMT:
       return {
-		"type" : int_type,
-		"id"   : NewWidgetName("Deco"),
-		"_dataSrcHasChanged" : false,
+        "type" : int_type,
+        "id"   : NewWidgetName("Deco"),
+        "_dataSrcHasChanged" : false,
 <?php printDefaultObjectValue($DECO_EDITABLE_VALUES);?>
         "_originalData" : new Array(),
-	    };
+        };
   }
   throw "invalid int_type";
 }
 <?php editPartStart(); ?>
 function backupWidgetData(widgetData)
   { for(var key in widgetData)
-	  if (key.charAt(0)!='_')  widgetData._originalData[key] = widgetData[key];
+      if (key.charAt(0)!='_')  widgetData._originalData[key] = widgetData[key];
   }
 
 function restoreWidgetData(widgetData)
   { for(var key in widgetData._originalData)
-	  widgetData[key] = widgetData._originalData[key];
+      widgetData[key] = widgetData._originalData[key];
   }
 
 
 function htmlEncode( html ) {
-	var res = '';
-	for (i=0;i<html.length;i++)
-	 { var c = html.charCodeAt(i);
+    var res = '';
+    for (i=0;i<html.length;i++)
+     { var c = html.charCodeAt(i);
        if (c>127) res=res+"&#"+c+";"
-	   else if (c==34) res=res+"&#34;"
-	   else if (c>31)	res=res+ html.charAt(i);
-	   else if (c==10)	res=res+ '<bR>';
+       else if (c==34) res=res+"&#34;"
+       else if (c>31)   res=res+ html.charAt(i);
+       else if (c==10)  res=res+ '<bR>';
 
-	 }
+     }
     return res;
 };
 
 <?php editPartEnd(); ?>
 
 function htmlDecode( st ) {
-	if (st==null) return "";
-	while (st.indexOf('<bR>')>=0)
-	{st=st.replace("<bR>",String.fromCharCode(10));
-	}
+    if (st==null) return "";
+    while (st.indexOf('<bR>')>=0)
+    {st=st.replace("<bR>",String.fromCharCode(10));
+    }
 
-	var  start =0;
-	var  s =-1;
-	do
-	 { var s =  st.substring(start).indexOf('&#');
-	   if (s>=0)
-	   { s= s+start;
+    var  start =0;
+    var  s =-1;
+    do
+     { var s =  st.substring(start).indexOf('&#');
+       if (s>=0)
+       { s= s+start;
 
          var e = st.substring(s+2,s+7).indexOf(';');
-	     if (e>=0)
-		 { start=e+1;
-		   var code =  st.substring(s+2, s+2+e);
-		   if (code>0)
-		   { st = st.substring(0,s)+String.fromCharCode(code)+st.substring(e+s+3);
-	       }
-		 } else s=-1;
-	   }
+         if (e>=0)
+         { start=e+1;
+           var code =  st.substring(s+2, s+2+e);
+           if (code>0)
+           { st = st.substring(0,s)+String.fromCharCode(code)+st.substring(e+s+3);
+           }
+         } else s=-1;
+       }
      }
-	while (s>=0)
+    while (s>=0)
 
     return st;
 };
@@ -1857,12 +1857,12 @@ function getConfigData()
   { iniData+='[Widget'+i+']\n';
     for (var key in widgets[i])
       if (key.charAt(0)!='_')
-	  { if (widgets[i][key]==null) iniData += key+'=null\n';
+      { if (widgets[i][key]==null) iniData += key+'=null\n';
          else iniData += key+'="'+htmlEncode(widgets[i][key].toString())+'"\n';
 
         //if (key=='innerHTML') iniData += key+'="'+htmlEncode(widgets[i][key])+'"\n';
-	    //   else iniData += key+'="'+widgets[i][key]+'"\n';
-	  }
+        //   else iniData += key+'="'+widgets[i][key]+'"\n';
+      }
 
   }
   var value = getBgType();
@@ -1873,7 +1873,7 @@ function getConfigData()
           +'BgGradientColor2="'+document.getElementById('BgGradientColor2').value+'"\n'
           +'BgGradientAngle="'+document.getElementById('BgGradientAngle').value+'"\n'
           +'BgImageUrl="'+document.getElementById('BgImageUrl').value+'"\n'
-	      +'BgImageRepeat="'+document.getElementById('BgImageRepeat').value+'"\n';
+          +'BgImageRepeat="'+document.getElementById('BgImageRepeat').value+'"\n';
   iniData +='[callBackFreq]\n'
           +'freqEnabled="'+document.getElementById('freqEnabled').checked+'"\n'
           +'freqMin="'+parseInt(document.getElementById('freqMin').value)+'"\n'
@@ -1885,13 +1885,13 @@ function getConfigData()
           +'wakeUpSleepAfter="'+parseInt(document.getElementById('wakeUpSleepAfter').value)+'"\n'
           +'wakeUpDaysWeek="'+parseInt(document.getElementById('wakeUpDaysWeek').value)+'"\n'
           +'wakeUpDaysMonth="'+parseInt(document.getElementById('wakeUpDaysMonth').value)+'"\n'
-	      +'wakeUpMonths="'+parseInt(document.getElementById('wakeUpMonths').value)+'"\n'
-	      +'wakeUpHours="'+parseInt(document.getElementById('wakeUpHours').value)+'"\n'
-	      +'wakeUpMinutesA="'+parseInt(document.getElementById('wakeUpMinutesA').value)+'"\n'
-	      +'wakeUpMinutesB="'+parseInt(document.getElementById('wakeUpMinutesB').value)+'"\n';
+          +'wakeUpMonths="'+parseInt(document.getElementById('wakeUpMonths').value)+'"\n'
+          +'wakeUpHours="'+parseInt(document.getElementById('wakeUpHours').value)+'"\n'
+          +'wakeUpMinutesA="'+parseInt(document.getElementById('wakeUpMinutesA').value)+'"\n'
+          +'wakeUpMinutesB="'+parseInt(document.getElementById('wakeUpMinutesB').value)+'"\n';
   iniData +='[cleanUpSettings]\n'
           +'cleanUpEnabled="'+document.getElementById('cleanUpEnabled').checked+'"\n'
-	      +'dataTrimSize="'+parseInt(document.getElementById('dataTrimSize').value)+'"\n'
+          +'dataTrimSize="'+parseInt(document.getElementById('dataTrimSize').value)+'"\n'
           +'dataMaxSize="'+parseInt(document.getElementById('dataMaxSize').value)+'"\n';
 
 
@@ -1940,23 +1940,23 @@ function newGraph(index)
   {
      return  new Highcharts.StockChart({
         chart :     { type: 'line', zoomType: 'x',
-		animation :false,
-		spacingBottom: 5,
+        animation :false,
+        spacingBottom: 5,
         spacingTop: 5,
         spacingLeft: 5,
         spacingRight: 5,
-		marginBottom: 20,
+        marginBottom: 20,
         marginTop: 25,
-		borderColor: '#EBBA95',
+        borderColor: '#EBBA95',
         // Explicitly tell the width and height of a chart
         width: null,
         height: null,
-		renderTo: widgets[index].id,
+        renderTo: widgets[index].id,
         <?php printObjectInitCode(GRAPH_OBJ); ?>
 
-		},
+        },
 
-	    title: {<?php printObjectInitCode(TITLE_OBJ);?>,
+        title: {<?php printObjectInitCode(TITLE_OBJ);?>,
                 style:{<?php printObjectInitCode(TITLESTYLE_OBJ);?>}
         },
         legend: {<?php printObjectInitCode(LEGEND_OBJ);?>},
@@ -1964,12 +1964,12 @@ function newGraph(index)
         scrollbar: {liveRedraw: true,    <?php printObjectInitCode(SCROLLBAR_OBJ);?>},
 
 
-		credits: { enabled: false},
+        credits: { enabled: false},
         plotOptions:{series: { animation: false}},
-		xAxis : { minRange: 60 * 1000,
-		          // min : <?php print((time() - 3 * 86400) * 1000);?>,
-                  // max :	<?php print(time() * 1000); ?>,
-		          type: 'datetime',
+        xAxis : { minRange: 60 * 1000,
+                  // min : <?php print((time() - 3 * 86400) * 1000);?>,
+                  // max :  <?php print(time() * 1000); ?>,
+                  type: 'datetime',
                   ordinal: false,
                   <?php printObjectInitCode(XAXIS_OBJ);?>,
                   labels:{style: { <?php printObjectInitCode(XAXISSTYLE_OBJ);?>}}
@@ -1995,7 +1995,7 @@ function newGraph(index)
         } },
 
 
-		yAxis: [
+        yAxis: [
 
 
 <?php
@@ -2152,7 +2152,7 @@ function findwidgetIndex(id)
 {  var index = -1;
 
    for (var i=0;i<widgets.length;i++)
-	 if (widgets[i].id==id) index=i;
+     if (widgets[i].id==id) index=i;
   return index;
 }
 
@@ -2164,8 +2164,8 @@ function startDecoRefresh()
 
 function updateDecoValue(data)
 { for (var i=0;i<data.length;i++)
-	{  updateLastValue(data[i][0],data[i][1], data[i][2],data[i][3]);
-	}
+    {  updateLastValue(data[i][0],data[i][1], data[i][2],data[i][3]);
+    }
 
   if (refreshEnabled) initDecoRefreshTimer();
 }
@@ -2178,14 +2178,14 @@ function  initDecoRefreshTimer()
 <?php editPartStart(); ?>
 function deleteWidget(id)
   {
-	var index=  findwidgetIndex(id);
-	if (index<0) return;
+    var index=  findwidgetIndex(id);
+    if (index<0) return;
 
     if (!confirm('Do you really want to delete this widget?')) return;
 
     var div =  document.getElementById(widgets[index].id);
     div.parentElement.removeChild(div);
-	var div =  document.getElementById(widgets[index].id+"ctrl");
+    var div =  document.getElementById(widgets[index].id+"ctrl");
     div.parentElement.removeChild(div);
 
     widgets.splice(index,1);
@@ -2197,7 +2197,7 @@ function stopAllRefreshs()
  { refreshEnabled = false;
    stopDecoRefreshTimer();
    for (var i=0;i<widgets.length;i++)
-	 if  (widgets[i].type==GRAPHELMT)
+     if  (widgets[i].type==GRAPHELMT)
       stopGraphRefreshTimer(widgets[i]);
  }
 
@@ -2210,7 +2210,7 @@ function restoreAllRefreshs()
  {  refreshEnabled = true;
     initDecoRefreshTimer();
     for (var i=0;i<widgets.length;i++)
-	 if  (widgets[i].type==GRAPHELMT)
+     if  (widgets[i].type==GRAPHELMT)
         initRefreshGraphData( widgets[i],-1);
  }
 
@@ -2225,9 +2225,9 @@ function stopDecoRefreshTimer()
 
 function stopGraphRefreshTimer(widget)
 { if (widgets['_refreshTimer'])
-	{ clearTimeout(widgets['_refreshTimer']);
+    { clearTimeout(widgets['_refreshTimer']);
       widget['_refreshTimer']=null;
-	}
+    }
 
 }
 
@@ -2251,10 +2251,10 @@ function CreateWidget(index,widgetType)
   switch (widgetType)
   {  case  GRAPHELMT:
        widgets[index]["_chart"] = newGraph(index);
-	   break;
+       break;
      case  DECOELMT:
-	   newdiv.InnerHTML='Hello world!';
-	   break;
+       newdiv.InnerHTML='Hello world!';
+       break;
   }
 
   var ctrldiv = document.createElement('div');
@@ -2280,20 +2280,20 @@ function CreateWidget(index,widgetType)
 function updateDone(id)
  { for (var i=0;i<widgets.length;i++)
     if (widgets[i].id==id)
-	 { if (widgets[i]['_needUpdate'])
-		 { for (j=0;j<<?php
+     { if (widgets[i]['_needUpdate'])
+         { for (j=0;j<<?php
 print(MAX_DATASRC_PER_GRAPH);
 ?>;j++)
-	        { widgets[i]['_chart'].series[3*j].setData(widgets[i]["_data"][j].max,false,false,false);
+            { widgets[i]['_chart'].series[3*j].setData(widgets[i]["_data"][j].max,false,false,false);
               widgets[i]['_chart'].series[3*j+1].setData(widgets[i]["_data"][j].min,false,false,false);
               widgets[i]['_chart'].series[3*j+2].setData(widgets[i]["_data"][j].cur,false,false,false);
- 	        }
-	       widgets[i]['_chart'].redraw();
-	     }
-	  stopGraphRefreshTimer(widgets[i]);
-	  if(refreshEnabled) setTimeout(function() {initRefreshGraphData( widgets[i],-1); },2500);
-	  return;
-	 }
+            }
+           widgets[i]['_chart'].redraw();
+         }
+      stopGraphRefreshTimer(widgets[i]);
+      if(refreshEnabled) setTimeout(function() {initRefreshGraphData( widgets[i],-1); },2500);
+      return;
+     }
  }
 
 
@@ -2305,7 +2305,7 @@ function updateLastValue(srcname,timestamp, value, unit)
     { lastestValues[srcname].timestamp=timestamp;
       lastestValues[srcname].value=value;
       lastestValues[srcname].unit=unit;
-	  refreshDecoValues(srcname);
+      refreshDecoValues(srcname);
     }
  }
 
@@ -2318,12 +2318,12 @@ function updateGraph(id,serieIndex,start,minData,maxData,curData,precision,unit)
    firstRefresh=false;
    var widgetsIndex=-1;
    for (var i=0;i<widgets.length;i++)
-	if (widgets[i].id==id)
-	  { chart= widgets[i]["_chart"];
+    if (widgets[i].id==id)
+      { chart= widgets[i]["_chart"];
         data = widgets[i]["_data"][serieIndex];
-		widgetsIndex=i;
-		widgets[i]['_needUpdate']=true;
-	  }
+        widgetsIndex=i;
+        widgets[i]['_needUpdate']=true;
+      }
    var Tmin = curData[0][0]+start;
    var Tmax = curData[curData.length-1][0]+start;
    for (var i=0;i<curData.length;i++)
@@ -2335,25 +2335,25 @@ function updateGraph(id,serieIndex,start,minData,maxData,curData,precision,unit)
    if (data.Tmin==null)
      { data.Tmin = Tmin;
        data.Tmax = Tmax;
-	   data.min = minData;
-	   data.max = maxData;
-	   data.cur = curData;
-	 }
+       data.min = minData;
+       data.max = maxData;
+       data.cur = curData;
+     }
    else
     {  if (data.Tmin>Tmin)
-		{data.Tmin=Tmin;
+        {data.Tmin=Tmin;
          data.min = minData.concat(data.min);
-	     data.max = maxData.concat(data.max);
-	     data.cur = curData.concat(data.cur);
-	    }
-		else
-	   if (data.Tmax<Tmax)
-	   { data.Tmax=Tmax;
- 	     data.min  = data.min.concat(minData);
-	     data.max = data.max.concat(maxData);
-	     data.cur = data.cur.concat(curData);
-	   }
-	}
+         data.max = maxData.concat(data.max);
+         data.cur = curData.concat(data.cur);
+        }
+        else
+       if (data.Tmax<Tmax)
+       { data.Tmax=Tmax;
+         data.min  = data.min.concat(minData);
+         data.max = data.max.concat(maxData);
+         data.cur = data.cur.concat(curData);
+       }
+    }
    var srcname = widgets[widgetsIndex]['data_datasource_'+serieIndex];
    updateLastValue(srcname,Tmax, curData[curData.length-1][1],unit);
 
@@ -2367,32 +2367,32 @@ function updateGraph(id,serieIndex,start,minData,maxData,curData,precision,unit)
 
 function preloadGraphData(widget,serieIndex, newsrc)
  {  var it =  document.getElementById(widget.id+'frame');
-	it.src = self()+'?cmd=getdata'+'&feed='+feed+'&id='+widget.id+'&indexes='+serieIndex+'&name='+newsrc+'&time=null,null';
+    it.src = self()+'?cmd=getdata'+'&feed='+feed+'&id='+widget.id+'&indexes='+serieIndex+'&name='+newsrc+'&time=null,null';
  }
 
 function initRefreshGraphData(widget,serieIndex)
  {
     var it =  document.getElementById(widget.id+'frame');
-	var srcnames = '';
-	var indexes ='';
-	var timestamps ='';
-	widget['_needUpdate']=false;
-	if (serieIndex<0)
-  	  for (var i=0;i<<?php
+    var srcnames = '';
+    var indexes ='';
+    var timestamps ='';
+    widget['_needUpdate']=false;
+    if (serieIndex<0)
+      for (var i=0;i<<?php
 print(MAX_DATASRC_PER_GRAPH);
 ?>;i++)
- 	    { srcnames=srcnames+(i>0?',':'')+widget['data_datasource_'+i];
-	      indexes =indexes +(i>0?',':'')+i;
+        { srcnames=srcnames+(i>0?',':'')+widget['data_datasource_'+i];
+          indexes =indexes +(i>0?',':'')+i;
           var data = widget['_data'][i];
-		  timestamps= timestamps  +(i>0?',':'')+data.Tmin+','+data.Tmax;
+          timestamps= timestamps  +(i>0?',':'')+data.Tmin+','+data.Tmax;
 
-		}
-	else
-	{ srcnames= widget['data_datasource_'+serieIndex];
+        }
+    else
+    { srcnames= widget['data_datasource_'+serieIndex];
       indexes = serieIndex;
-	  var data = widget['_data'][serieIndex];
-	  timestamps= timestamps  +(i>0?',':'')+data.Tmin+','+data.Tmax;
-	}
+      var data = widget['_data'][serieIndex];
+      timestamps= timestamps  +(i>0?',':'')+data.Tmin+','+data.Tmax;
+    }
     it.src = self()+'?cmd=getdata'+'&feed='+feed+'&id='+widget.id+'&indexes='+indexes+'&name='+srcnames+'&time='+timestamps+'&pouet=0';
  }
 
@@ -2413,15 +2413,15 @@ function NewDecoWidget(hwdname)
 
 function refreshDecoValues(srcName)
  { if (lastestValues[srcName])
-	 { var spans = document.getElementsByName(srcName);
+     { var spans = document.getElementsByName(srcName);
        for (var i=0;i<spans.length;i++)
-	   {
+       {
          var precision = spans[i].getAttribute('precision');
          var showUnit  = (parseInt(spans[i].getAttribute('showunit'))==1);
-		 var value = lastestValues[srcName].value.toFixed(precision);
-		 spans[i].innerHTML= value +(showUnit?' '+lastestValues[srcName].unit:'');
-	   }
-	 }
+         var value = lastestValues[srcName].value.toFixed(precision);
+         spans[i].innerHTML= value +(showUnit?' '+lastestValues[srcName].unit:'');
+       }
+     }
  }
 
 function computeTextContents(widgetsdata,innerHTML)
@@ -2493,7 +2493,7 @@ function  applyDivProperties(obj_div,widgetsdata)
 PrintDivPropertiesApplyCode($GRAPH_EDITABLE_VALUES);
 ?>
       break;
-	 case DECOELMT:
+     case DECOELMT:
 <?php
 PrintDivPropertiesApplyCode($DECO_EDITABLE_VALUES);
 ?>
@@ -2504,7 +2504,7 @@ PrintDivPropertiesApplyCode($DECO_EDITABLE_VALUES);
  function applyCtrlDivProperties(graph_div,ctrl_div)
  {  ctrl_div.style.left=graph_div.style.left;
     ctrl_div.style.top=graph_div.style.top;
-	ctrl_div.style.zIndex=parseInt(graph_div.style.zIndex)+1;
+    ctrl_div.style.zIndex=parseInt(graph_div.style.zIndex)+1;
  }
 
 
@@ -2609,7 +2609,7 @@ for ($i = 0; $i < MAX_DATASRC_PER_GRAPH; $i++) {
 ?>
     stopGraphRefreshTimer(widget);
     initRefreshGraphData(widget,-1);
-	widget['_dataSrcHasChanged'] =false;
+    widget['_dataSrcHasChanged'] =false;
    }
   }
 
@@ -2617,22 +2617,22 @@ for ($i = 0; $i < MAX_DATASRC_PER_GRAPH; $i++) {
 function changeGraphDataSource(widget,options,serieindex,newsource)
   { var visible =  !((newsource==null) || (newsource==''));
     var graph = widget['_chart'];
-	var extremes = graph.xAxis[0].getExtremes();
-	var max = extremes.max;
-	var min = extremes.min;
-	if (visible)
-	{ widget["_dataSrcHasChanged"]=true;
-	  for (var j=0;j<3;j++)
-	    graph.series[serieindex*3+j].setData(new Array(),true);
-	}
-	options.series[serieindex*3+2].showInLegend = visible;
-	options.series[serieindex*3+2].visible = visible;
-	options.xAxis[0].min=min;
-	options.xAxis[0].max=max;
-	if (!visible)
-	{ options.series[serieindex*3+0].visible = visible;
+    var extremes = graph.xAxis[0].getExtremes();
+    var max = extremes.max;
+    var min = extremes.min;
+    if (visible)
+    { widget["_dataSrcHasChanged"]=true;
+      for (var j=0;j<3;j++)
+        graph.series[serieindex*3+j].setData(new Array(),true);
+    }
+    options.series[serieindex*3+2].showInLegend = visible;
+    options.series[serieindex*3+2].visible = visible;
+    options.xAxis[0].min=min;
+    options.xAxis[0].max=max;
+    if (!visible)
+    { options.series[serieindex*3+0].visible = visible;
       options.series[serieindex*3+1].visible = visible;
-	}
+    }
     if (visible) return serieindex;
   }
 
@@ -2796,7 +2796,7 @@ for ($i = 0; $i < sizeof($GRAPH_EDITABLE_VALUES); $i++)
 ?>
    applyCtrlDivProperties(div,ctrlDiv);
    if (optionschanged) {
-	   widgets[index]._chart =  new Highcharts.StockChart(options);
+       widgets[index]._chart =  new Highcharts.StockChart(options);
    }
    if (mustReloadSerie>=0) preloadGraphData(widgets[index],mustReloadSerie, value);
  }
@@ -2995,12 +2995,12 @@ function updateRawDataWindow(headers,resolution,data)
    for (i=0;i<data.length;i++)
    { html+='<tr><td class="time" >'+timestampTolocalTime(data[i][0])+'</td>';
      for (j=0;j<headers.length;j++)
-	   { var r = resolution[j];
+       { var r = resolution[j];
          var d0= (data[i][1][j][0]==null) ?'':data[i][1][j][0].toFixed(r);
-		 var d1= (data[i][1][j][1]==null) ?'':data[i][1][j][1].toFixed(r);
-		 var d2= (data[i][1][j][2]==null) ?'':data[i][1][j][2].toFixed(r);
-	     html+='<td class="mi">'+d0+'</td><td class="cu">'+d1+'</td><td class="ma">'+d2+'</td>';
-	   }
+         var d1= (data[i][1][j][1]==null) ?'':data[i][1][j][1].toFixed(r);
+         var d2= (data[i][1][j][2]==null) ?'':data[i][1][j][2].toFixed(r);
+         html+='<td class="mi">'+d0+'</td><td class="cu">'+d1+'</td><td class="ma">'+d2+'</td>';
+       }
      html+='</tr>';
    }
    html+='</tbody>';
@@ -3017,9 +3017,9 @@ function updateRawDataWindow(headers,resolution,data)
 
 function cancelBgSettings()
  { var  values =document.getElementsByName('BgImgType');
-	for (var i=0;i<values.length;i++)
+    for (var i=0;i<values.length;i++)
      { values[i].checked = values[i].value==previousBgSettings['BgImgType'];
- 	 }
+     }
 
   <?php
 foreach ($background as $key => $value)
@@ -3116,15 +3116,15 @@ function saveWakeUpSettings()
    if (document.getElementById('wakeUpEnabled').checked)
      { if   (((document.getElementById('wakeUpAutoSleep').checked)
            || (parseInt(document.getElementById('wakeUpSleepAfter').value)>0))
-	       && (parseInt(document.getElementById('wakeUpDaysWeek').value)==0)
-		   && (parseInt(document.getElementById('wakeUpDaysMonth').value)==0)
-		   && (parseInt(document.getElementById('wakeUpMonths').value)==0)
-		   && (parseInt(document.getElementById('wakeUpHours').value)==0)
-		   && (parseInt(document.getElementById('wakeUpMinutesA').value)==0)
-		   && (parseInt(document.getElementById('wakeUpMinutesB').value)==0))
-	     if (!confirm("These settings might very well send the\nhub in infinite sleep, a physical interaction\nwill be needed to wake it up again.\n\nDo you really want to save these settings?")) return;
+           && (parseInt(document.getElementById('wakeUpDaysWeek').value)==0)
+           && (parseInt(document.getElementById('wakeUpDaysMonth').value)==0)
+           && (parseInt(document.getElementById('wakeUpMonths').value)==0)
+           && (parseInt(document.getElementById('wakeUpHours').value)==0)
+           && (parseInt(document.getElementById('wakeUpMinutesA').value)==0)
+           && (parseInt(document.getElementById('wakeUpMinutesB').value)==0))
+         if (!confirm("These settings might very well send the\nhub in infinite sleep, a physical interaction\nwill be needed to wake it up again.\n\nDo you really want to save these settings?")) return;
 
-	 }
+     }
    saveAll();
    restoreAllRefreshs();
    document.getElementById('wakeUpSettings').style.display='none';
@@ -3142,11 +3142,11 @@ function saveWakeUpSettings()
       var ofs = parseInt( btn[i].getAttribute('data-ofset'));
       value =  document.getElementById(src).value;
       if (value & (1<<ofs))
-	     {  btn[i].style.color = v?'white':'#e0e0e0';
+         {  btn[i].style.color = v?'white':'#e0e0e0';
           btn[i].style.backgroundColor = v?'black':'#808080';
        }
-	   else
-	   {  btn[i].style.color = v?'black':'#f0f0f0';
+       else
+       {  btn[i].style.color = v?'black':'#f0f0f0';
          btn[i].style.backgroundColor = v?'white':'#E0E0E0';
      }
      btn[i].style.borderColor = v?'#606060':'#A0A0A0';
@@ -3157,7 +3157,7 @@ function saveWakeUpSettings()
    for (var i=0;i<btn.length;i++)
    {   btn[i].style.color = v?'black':'#e0e0e0';
        btn[i].style.backgroundColor = v?'white':'#E0E0E0';
-  	   btn[i].style.borderColor = v?'#606060':'#A0A0A0';
+       btn[i].style.borderColor = v?'#606060':'#A0A0A0';
        btn[i].style.cursor = v?'pointer':'text';
    }
  }
@@ -3222,7 +3222,7 @@ function refreshCleanUpWindow()
 
 function deleteData(dataname,datafile)
  { if (confirm("Do really want to delete "+dataname+"?"))
-	 document.getElementById('cleanupFrame').src=self()+'?feed=<?php print($FEED);?>&cmd=delete&file='+encodeURI(datafile);
+     document.getElementById('cleanupFrame').src=self()+'?feed=<?php print($FEED);?>&cmd=delete&file='+encodeURI(datafile);
  }
 
 function sizeToStr(s)
@@ -3251,12 +3251,12 @@ function updatefileDetails(data)
   for (var i=0;i<data.length;i++)
    {   html+='<div class="fileDetailsContents">'
            +'<table width="100%">'
-		   +'<tr><td colspan=3><b>'+data[i].name+'</b></td></tr>'
-		   +'<tr><td>File name:</td><td>'+data[i].file+'</td><td rawspan=2></td></tr>'
-		   +'<tr><td>File size:</td><td>'+sizeToStr(data[i].filesize)+'</td></tr>'
-		   +'<tr><td>Records count:</td><td>'+data[i].recordscount+'</td><td rawspan=2 valign="bottom"><a class="button" href="javascript:deleteData('+"'"+data[i].name+"'"+",'"+data[i].file+"'"+')">Delete</a></td></tr>'
-		   +'<tr><td>Last update:</td><td>'+unixTimeStampToLocaStr(data[i].lastupdate)+'</td></tr>'
-		   +'</table></div>';
+           +'<tr><td colspan=3><b>'+data[i].name+'</b></td></tr>'
+           +'<tr><td>File name:</td><td>'+data[i].file+'</td><td rawspan=2></td></tr>'
+           +'<tr><td>File size:</td><td>'+sizeToStr(data[i].filesize)+'</td></tr>'
+           +'<tr><td>Records count:</td><td>'+data[i].recordscount+'</td><td rawspan=2 valign="bottom"><a class="button" href="javascript:deleteData('+"'"+data[i].name+"'"+",'"+data[i].file+"'"+')">Delete</a></td></tr>'
+           +'<tr><td>Last update:</td><td>'+unixTimeStampToLocaStr(data[i].lastupdate)+'</td></tr>'
+           +'</table></div>';
    }
   document.getElementById('filelist').innerHTML = html;
  }
@@ -3343,14 +3343,14 @@ function editWidget(id)
    backupWidgetData(widgets[index])
    switch(parseInt(widgets[index].type))
    { case  GRAPHELMT:
-           <?php PrintEditWidgetInputUpdate('grapheditor',$GRAPH_EDITABLE_VALUES);?>
-	   document.getElementById('grapheditor').style.display='';
-	   break;
+       <?php PrintEditWidgetInputUpdate('grapheditor',$GRAPH_EDITABLE_VALUES);?>
+       document.getElementById('grapheditor').style.display='';
+       break;
      case  DECOELMT:
-	   <?php PrintEditWidgetInputUpdate('decoeditor',$DECO_EDITABLE_VALUES);?>
-	   document.getElementById('decoeditor').style.display='';
-	   showUICtrls(false);
-	   break;
+       <?php PrintEditWidgetInputUpdate('decoeditor',$DECO_EDITABLE_VALUES);?>
+       document.getElementById('decoeditor').style.display='';
+       showUICtrls(false);
+       break;
    }
    showUICtrls(false);
    widgets[index]['_dataSrcHasChanged'] =false;
@@ -3377,9 +3377,9 @@ function notificationDecay()
  { var opacity = parseFloat(document.getElementById('NotifyDiv').style.opacity);
    opacity-=0.05;
    if (opacity>0)
-	{ document.getElementById('NotifyDiv').style.opacity = opacity;
+    { document.getElementById('NotifyDiv').style.opacity = opacity;
       setTimeout(function(){notificationDecay()},60);
-	}
+    }
    else
    document.getElementById('NotifyDiv').style.display='none';
  }
@@ -3387,14 +3387,14 @@ function notificationDecay()
 function expandColapse(prefix,index)
  {  var div =document.getElementById(prefix+'Section'+index);
     var link =  document.getElementById(prefix+'link'+index);
-	if (div.style.display=='')
-	 { div.style.display='none';
+    if (div.style.display=='')
+     { div.style.display='none';
        link.innerHTML =  '&#10133;'
-	 }
-	else
-	 { div.style.display='';
+     }
+    else
+     { div.style.display='';
        link.innerHTML =  '&#10134;'
-	 }
+     }
 
 
  }
@@ -3409,7 +3409,7 @@ function switchMainMenuSide()
    }
    else
    { div.style.left='10px';
-	 div.style.right=null;
+     div.style.right=null;
    }
  }
 
@@ -3421,24 +3421,24 @@ function sideswitch(prefix)
    if (parseInt(left)==0)
    { div.style.right='0px';
      div.style.left=null;
-	 div.style.borderTopRightRadius='0px';
-	 div.style.borderBottomRightRadius='0px';
-	 div.style.borderTopLeftRadius='10px';
-	 div.style.borderBottomLeftRadius='10px';
-	 sideSwitcher.style.right=null;
+     div.style.borderTopRightRadius='0px';
+     div.style.borderBottomRightRadius='0px';
+     div.style.borderTopLeftRadius='10px';
+     div.style.borderBottomLeftRadius='10px';
+     sideSwitcher.style.right=null;
          sideSwitcher.style.left="0px";
-	 header.style.textAlign='right';
+     header.style.textAlign='right';
    }
    else
        { div.style.right=null;
          div.style.left='0px';
-	 div.style.borderTopRightRadius='10px';
-	 div.style.borderBottomRightRadius='10px';
-	 div.style.borderTopLeftRadius='0px';
-	 div.style.borderBottomLeftRadius='0px';
-	 sideSwitcher.style.right="0px";
+     div.style.borderTopRightRadius='10px';
+     div.style.borderBottomRightRadius='10px';
+     div.style.borderTopLeftRadius='0px';
+     div.style.borderBottomLeftRadius='0px';
+     sideSwitcher.style.right="0px";
          sideSwitcher.style.left=null;
-	 header.style.textAlign='left';
+     header.style.textAlign='left';
    }
  }
 
@@ -3447,8 +3447,8 @@ function sideswitch(prefix)
    for (i=0;i<widgets.length;i++)
     { html = html+ "<li><a href='javascript:editWidget(\""+widgets[i].id+"\")'>"+widgets[i].id;
       if (widgets[i].title_text)  html=html+' ('+widgets[i].title_text+')';
-	  html = html+"</a></li>";
-	}
+      html = html+"</a></li>";
+    }
    document.getElementById('editSubMenu').innerHTML = html;
  }
 
@@ -3467,8 +3467,8 @@ function sideswitch(prefix)
  function bgselect(index)
   { var  values =document.getElementsByName('BgImgType');
     for (var i=0;i<values.length;i++)
-		 values[i].checked = i==index;
-	setBackground();
+         values[i].checked = i==index;
+    setBackground();
   }
 
  function setBackground()
@@ -3477,39 +3477,39 @@ function sideswitch(prefix)
    var sheet = document.styleSheets[0];
    var rules = sheet.cssRules || sheet.rules;
    for (var i=0;i<rules.length;i++)
-	if (rules[i].selectorText.toUpperCase()=='BODY')
-   rule =	rules[i];
+    if (rules[i].selectorText.toUpperCase()=='BODY')
+   rule =   rules[i];
    rule.style.backgroundColor=document.getElementById('BgSolidColor').value;
    switch (value)
      {  case 'none' :
 
-	       rule.style.backgroundImage=null;
-	       rule.style.backgroundRepeat= null;
-		   rule.style.backgroundSize= null;
-		   break;
+           rule.style.backgroundImage=null;
+           rule.style.backgroundRepeat= null;
+           rule.style.backgroundSize= null;
+           break;
 
-		case 'gradient' :
-		   var c1= document.getElementById('BgGradientColor1').value;
-		   var c2= document.getElementById('BgGradientColor2').value;
-		   var angle= document.getElementById('BgGradientAngle').value;
-		   rule.style.backgroundImage= "linear-gradient("+angle+"deg,"+c1+" 0%,"+c2+" 100%)";
-		    break;
-		case 'image' :
-		   var url    = document.getElementById('BgImageUrl').value;
-	       var repeat = document.getElementById('BgImageRepeat').value;
+        case 'gradient' :
+           var c1= document.getElementById('BgGradientColor1').value;
+           var c2= document.getElementById('BgGradientColor2').value;
+           var angle= document.getElementById('BgGradientAngle').value;
+           rule.style.backgroundImage= "linear-gradient("+angle+"deg,"+c1+" 0%,"+c2+" 100%)";
+            break;
+        case 'image' :
+           var url    = document.getElementById('BgImageUrl').value;
+           var repeat = document.getElementById('BgImageRepeat').value;
 
-	      rule.style.backgroundImage= "url("+url+")";
-		  switch (repeat)
-		  { case 'cover' :   rule.style.backgroundRepeat= 'no-repeat';
-		                     rule.style.backgroundSize= 'cover';
-		                     break;
-			case 'contain' : rule.style.backgroundRepeat= 'no-repeat';
-		                     rule.style.backgroundSize= 'contain';
-		                     break;
-			default:         rule.style.backgroundSize= 'auto';
-		                     rule.style.backgroundRepeat= repeat;
-		                     break;
-		  }
+          rule.style.backgroundImage= "url("+url+")";
+          switch (repeat)
+          { case 'cover' :   rule.style.backgroundRepeat= 'no-repeat';
+                             rule.style.backgroundSize= 'cover';
+                             break;
+            case 'contain' : rule.style.backgroundRepeat= 'no-repeat';
+                             rule.style.backgroundSize= 'contain';
+                             break;
+            default:         rule.style.backgroundSize= 'auto';
+                             rule.style.backgroundRepeat= repeat;
+                             break;
+          }
      }
  }
 
@@ -3519,48 +3519,48 @@ function setAll(inputName,count,every)
  {  if (!document.getElementById('wakeUpEnabled').checked) return;
     var value = 0;
     var valueA = 0;
-	var valueB = 0;
-	if (count<32)
-	{ if (every==0) document.getElementById(inputName).value =0;
-	  else
-	  { for (i=0;i<count;i++) if ((i%every)==0) value |= (1<<i);
-		  document.getElementById(inputName).value =value;
-	  }
-	}
+    var valueB = 0;
+    if (count<32)
+    { if (every==0) document.getElementById(inputName).value =0;
+      else
+      { for (i=0;i<count;i++) if ((i%every)==0) value |= (1<<i);
+          document.getElementById(inputName).value =value;
+      }
+    }
     else
-	{ if (every==0)
-	   { document.getElementById(inputName+'A').value =0;
-	     document.getElementById(inputName+'B').value =0;
-	   }
-	  else
-	  { for (i=0;i<count;i++)
-		 if ((i%every)==0)
-		   {  if (i<30) valueA  |= (1<<i);
-	                 else valueB  |= (1<<(i-30));
-		   }
+    { if (every==0)
+       { document.getElementById(inputName+'A').value =0;
+         document.getElementById(inputName+'B').value =0;
+       }
+      else
+      { for (i=0;i<count;i++)
+         if ((i%every)==0)
+           {  if (i<30) valueA  |= (1<<i);
+                     else valueB  |= (1<<(i-30));
+           }
 
-		document.getElementById(inputName+'A').value =valueA;
+        document.getElementById(inputName+'A').value =valueA;
         document.getElementById(inputName+'B').value =valueB;
-	 }
-	}
+     }
+    }
 
   for (var i=0;i<count;i++)
-	{ var index=i;
+    { var index=i;
     if (count>32)
-	    { if (i<30)  value = valueA; else { value=valueB; index-=30;}
+        { if (i<30)  value = valueA; else { value=valueB; index-=30;}
        }
       var el = document.getElementById(inputName+i);
-	   if (value & (1<<index))
+       if (value & (1<<index))
        { el.style.color = 'white';
-	     el.style.backgroundColor = 'black';
+         el.style.backgroundColor = 'black';
 
        }
       else
        { el.style.color = 'black';
-	       el.style.backgroundColor = 'white';
+           el.style.backgroundColor = 'white';
 
        }
-	}
+    }
 
  }
 
@@ -3570,24 +3570,24 @@ function setCalendar(inputName,index,MoreThan32Value)
    var bitindex =index;
    var el = document.getElementById(inputName+index);
    if (MoreThan32Value)
-	 if (index>=30)
-	 { inputName=inputName+'B'
+     if (index>=30)
+     { inputName=inputName+'B'
        bitindex-=30;
-	 } else  inputName=inputName+'A';
+     } else  inputName=inputName+'A';
    var value = parseInt(document.getElementById(inputName).value);
    var mask = (1<<bitindex);
    var pvalue= value;
    if (value & mask)
    {  value -=  mask;
       el.style.color = 'black';
-	    el.style.backgroundColor = 'white';
+        el.style.backgroundColor = 'white';
 
 
    }
    else
    {  value |= mask;
       el.style.color = 'white';
-	    el.style.backgroundColor = 'black';
+        el.style.backgroundColor = 'black';
    }
 
    document.getElementById(inputName).value = value;
@@ -3596,16 +3596,16 @@ function setCalendar(inputName,index,MoreThan32Value)
 
  function updateOrientation()  // thanks stackoverflow
   {  var viewport = document.querySelector("meta[name=viewport]");
-	 if (typeof window.orientation !== 'undefined')
-	 { switch (window.orientation)
-	   { case 90:
-	     case -90:
+     if (typeof window.orientation !== 'undefined')
+     { switch (window.orientation)
+       { case 90:
+         case -90:
             viewport.setAttribute('content', 'width=450');
-			break;
+            break;
          default:
-	       viewport.setAttribute('content', 'width=900');
-	   }
-	 }
+           viewport.setAttribute('content', 'width=900');
+       }
+     }
 
 
   }
@@ -3848,12 +3848,12 @@ Define the background properties and click save.<br><br>
 <tr><td style='padding-left:25px'>Image Url :</td><td><input id='BgImageUrl'  value='<?php print($background["BgImageUrl"]);?>'  onchange='setBackground()' ></td></tr>
 <tr><td style='padding-left:25px'>Repeat :</td><td><select id='BgImageRepeat' onchange='setBackground()' >
               <option value='no-repeat'<?php print($background["BgImageRepeat"]=='no-repeat'?"selected":"");?> >No repeat</option>
-	      <option value='repeat'   <?php print($background["BgImageRepeat"]=='repeat'?"selected":"");?>>Repeat X and Y</option>
-	      <option value='repeat-x' <?php print($background["BgImageRepeat"]=='repeat-x'?"selected":"");?>>Repeat X</option>
-	      <option value='repeat-y' <?php print($background["BgImageRepeat"]=='repeat-y'?"selected":"");?>>Repeat Y</option>
-	      <option value='cover'    <?php print($background["BgImageRepeat"]=='cover'?"selected":"");?>>Cover</option>
-	      <option value='contain'  <?php print($background["BgImageRepeat"]=='contain'?"selected":"");?>>Contain</option>
-	      </select></td></tr>
+          <option value='repeat'   <?php print($background["BgImageRepeat"]=='repeat'?"selected":"");?>>Repeat X and Y</option>
+          <option value='repeat-x' <?php print($background["BgImageRepeat"]=='repeat-x'?"selected":"");?>>Repeat X</option>
+          <option value='repeat-y' <?php print($background["BgImageRepeat"]=='repeat-y'?"selected":"");?>>Repeat Y</option>
+          <option value='cover'    <?php print($background["BgImageRepeat"]=='cover'?"selected":"");?>>Cover</option>
+          <option value='contain'  <?php print($background["BgImageRepeat"]=='contain'?"selected":"");?>>Contain</option>
+          </select></td></tr>
 </table>
 <br>
 <br>
